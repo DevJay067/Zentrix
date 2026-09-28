@@ -200,10 +200,16 @@ export const OnboardingPage: React.FC = () => {
       }, 1200);
     } catch (err: any) {
       console.error("Binding failed:", err);
-      if (err?.code === 4001 || err?.message?.includes("rejected") || err?.message?.includes("User denied")) {
+      if (err?.code === "NO_PROVIDER") {
+        // No wallet extension at all — open install/connect modal
+        setStepError(
+          "No wallet extension detected. Please install BridgeKey or MetaMask, connect it, then try again."
+        );
+        openConnectModal();
+      } else if (err?.code === 4001 || err?.message?.includes("rejected") || err?.message?.includes("User denied")) {
         setStepError("Signature request cancelled. Please sign the confirmation in your wallet to complete onboarding.");
       } else {
-        setStepError(err?.message || "Failed to bind wallet. Please check BridgeKey confirmation and try again.");
+        setStepError(err?.message || "Failed to bind wallet. Please check your wallet extension and try again.");
       }
     } finally {
       setIsSubmitting(false);

@@ -207,6 +207,16 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const signMessage = async (message: string): Promise<string> => {
+    // Guard: no injected wallet available at all
+    const ethereum = getInjectedProvider();
+    if (!signer && !ethereum) {
+      const err = new Error(
+        "No wallet extension detected. Please install BridgeKey from the Chrome Web Store and connect it to Zentrix."
+      );
+      (err as any).code = "NO_PROVIDER";
+      throw err;
+    }
+
     if (!signer && !address) throw new Error("Wallet not connected");
     if (signer && typeof signer.signMessage === "function") {
       try {
@@ -218,7 +228,6 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         console.warn("[Wallet] signer.signMessage failed, attempting raw personal_sign fallback:", err);
       }
     }
-    const ethereum = getInjectedProvider();
     if (ethereum && ethereum.request && address) {
       try {
         return await ethereum.request({
