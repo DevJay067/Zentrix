@@ -387,6 +387,102 @@ export const AboutPage: React.FC = () => {
         </div>
       </div>
 
+      {/* ── Infographic: Web2 Freelance vs Zentrix On-Chain ──────────────── */}
+      <div
+        className="rounded-3xl p-6 sm:p-8 space-y-6"
+        style={{
+          background: "var(--zx-surface)",
+          border: "1px solid var(--zx-border)",
+        }}
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="Zentrix Emblem" className="w-12 h-12 rounded-2xl object-contain shadow-sm p-1" style={{ background: "var(--zx-cream)" }} />
+            <div>
+              <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: "var(--zx-primary-deep)" }}>
+                Architectural Shift
+              </div>
+              <h2 className="text-xl sm:text-2xl font-black" style={{ color: "var(--zx-ink)" }}>
+                Web2 Platforms vs. Zentrix on MST Blockchain
+              </h2>
+            </div>
+          </div>
+          <span
+            className="text-xs font-bold px-3 py-1 rounded-full"
+            style={{ background: "var(--zx-surface-alt)", color: "var(--zx-primary-deep)" }}
+          >
+            Strictly Better on Chain
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {/* Traditional Web2 Box */}
+          <div
+            className="p-5 rounded-2xl space-y-3"
+            style={{ background: "var(--zx-cream)", border: "1px solid var(--zx-border)" }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black text-[var(--zx-muted)] uppercase">Traditional Freelance (Upwork/Fiverr)</span>
+              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: "rgba(163,29,29,0.1)", color: "var(--zx-danger)" }}>
+                Custodial & High Fees
+              </span>
+            </div>
+            <ul className="space-y-2 text-xs" style={{ color: "var(--zx-muted)" }}>
+              <li className="flex items-center gap-2">
+                <span className="font-bold text-[var(--zx-danger)]">✕</span>
+                <span><strong>10% to 20%</strong> platform rake taken from freelancer earnings</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="font-bold text-[var(--zx-danger)]">✕</span>
+                <span>Custodial bank holding with arbitrary account freezing & delays</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="font-bold text-[var(--zx-danger)]">✕</span>
+                <span>Unresponsive clients freeze milestone payouts for weeks</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="font-bold text-[var(--zx-danger)]">✕</span>
+                <span>Reputation trapped inside centralized platform silos</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* Zentrix on MST Box */}
+          <div
+            className="p-5 rounded-2xl space-y-3 relative overflow-hidden"
+            style={{
+              background: "var(--zx-ink)",
+              border: "1.5px solid var(--zx-primary)",
+            }}
+          >
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-black uppercase text-white">Zentrix on MST Blockchain</span>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: "var(--zx-primary)" }}>
+                Non-Custodial & Autonomous
+              </span>
+            </div>
+            <ul className="space-y-2 text-xs" style={{ color: "var(--zx-cream)" }}>
+              <li className="flex items-center gap-2">
+                <span className="font-bold" style={{ color: "var(--zx-success)" }}>✓</span>
+                <span><strong>0% Commission:</strong> 100% of value goes directly to talent</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="font-bold" style={{ color: "var(--zx-success)" }}>✓</span>
+                <span><strong>Smart Contract Escrow:</strong> Non-custodial pull payments on MST Testnet</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="font-bold" style={{ color: "var(--zx-success)" }}>✓</span>
+                <span><strong>72h Auto-Release:</strong> Zero payment anxiety if client goes inactive</span>
+              </li>
+              <li className="flex items-center gap-2">
+                <span className="font-bold" style={{ color: "var(--zx-success)" }}>✓</span>
+                <span><strong>Soulbound ERC-721 SBTs:</strong> Cryptographic proof of work that stays with you</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
       {/* ── Mission + Team — dark cell ──────────────────────────────────── */}
       <div
         className="rounded-3xl p-8 sm:p-12 relative overflow-hidden"

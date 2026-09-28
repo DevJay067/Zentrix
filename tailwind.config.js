@@ -21,6 +21,10 @@ export default {
           border: "var(--zx-border)",
         },
       },
+      fontFamily: {
+        sans: ["Poppins", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+        poppins: ["Poppins", "sans-serif"],
+      },
     },
   },
   plugins: [],

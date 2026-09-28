@@ -60,8 +60,9 @@ const server = Bun.serve({
     // Standard CORS headers
     const corsHeaders = {
       "Access-Control-Allow-Origin": "*",
-      "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-      "Access-Control-Allow-Headers": "Content-Type, Authorization",
+      "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+      "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, Accept",
+      "Access-Control-Max-Age": "86400",
     };
 
     if (req.method === "OPTIONS") {
@@ -110,10 +111,18 @@ const server = Bun.serve({
     // 4. POST /api/agent (Sarvam 30B LLM Proxy)
     if (url.pathname === "/api/agent" && req.method === "POST") {
       try {
-        const { prompt, walletAddress, role = "freelancer", tier = 0 } = await req.json();
+        const body = await req.json();
+        const { walletAddress, role = "freelancer", tier = 0 } = body;
+        let prompt = body.prompt;
+
+        // Support both prompt string and conversation messages array
+        if (!prompt && Array.isArray(body.messages) && body.messages.length > 0) {
+          const lastUserMessage = [...body.messages].reverse().find((m: any) => m.role === "user");
+          prompt = lastUserMessage?.content || body.messages[body.messages.length - 1]?.content;
+        }
 
         if (!prompt) {
-          return Response.json({ error: "Prompt is required" }, { status: 400, headers: corsHeaders });
+          return Response.json({ error: "Prompt or message is required" }, { status: 400, headers: corsHeaders });
         }
 
         const apiKey = process.env.SARVAM_API_KEY;

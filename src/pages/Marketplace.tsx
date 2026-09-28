@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { useWallet } from "../context/WalletContext";
+import { FREELANCE_CATEGORIES, ALL_FREELANCE_TAGS } from "../lib/tags";
+import { EscrowFlowInfographic } from "../components/EscrowFlowInfographic";
 import {
   Layers,
   PlusCircle,
@@ -8,13 +10,15 @@ import {
   Filter,
   Clock,
   Coins,
-  ShieldAlert,
+  ShieldCheck,
   Send,
   CheckCircle,
   ExternalLink,
-  ChevronRight,
   Briefcase,
   X,
+  Sparkles,
+  Tag,
+  Check,
 } from "lucide-react";
 
 interface MilestoneItem {
@@ -31,6 +35,7 @@ interface GigItem {
   client: string;
   totalBudget: string;
   reviewWindowHours: number;
+  category: string;
   tags: string[];
   technologies: string[];
   status: "Open" | "Assigned" | "Active" | "Completed";
@@ -46,7 +51,8 @@ const INITIAL_GIGS: GigItem[] = [
     client: "0x73595081334A18D4298A160b162faB4Fb4B3c85B",
     totalBudget: "3.5",
     reviewWindowHours: 72,
-    tags: ["Web3", "Frontend"],
+    category: "Development",
+    tags: ["Solidity", "Frontend (React/Vite)", "BridgeKey Integration"],
     technologies: ["React", "BridgeKey", "TypeScript", "Ethers"],
     status: "Open",
     milestones: [
@@ -77,7 +83,8 @@ const INITIAL_GIGS: GigItem[] = [
     client: "0x7FC1d02922d4865fd53De59697407a42e64d1Cad",
     totalBudget: "2.0",
     reviewWindowHours: 48,
-    tags: ["Smart Contracts", "Security"],
+    category: "Development",
+    tags: ["Smart Contracts", "Security Audits", "Foundry / Hardhat"],
     technologies: ["Solidity", "Hardhat", "Foundry"],
     status: "Open",
     milestones: [
@@ -102,8 +109,9 @@ const INITIAL_GIGS: GigItem[] = [
     client: "0x73595081334A18D4298A160b162faB4Fb4B3c85B",
     totalBudget: "4.0",
     reviewWindowHours: 72,
-    tags: ["AI", "Backend"],
-    technologies: ["Sarvam AI", "Next.js", "TypeScript"],
+    category: "AI",
+    tags: ["Sarvam AI Integration", "Prompt Engineering", "RAG Architecture"],
+    technologies: ["Sarvam AI", "Bun", "TypeScript"],
     status: "Open",
     milestones: [
       {
@@ -120,49 +128,129 @@ const INITIAL_GIGS: GigItem[] = [
       },
     ],
   },
+  {
+    id: "4",
+    title: "3D Brand Identity & Interactive Spline Motion for DApp",
+    description: "Create futuristic 3D assets, geometric glass emblems, and interactive canvas components for Zentrix DApp.",
+    client: "0x7FC1d02922d4865fd53De59697407a42e64d1Cad",
+    totalBudget: "2.5",
+    reviewWindowHours: 48,
+    category: "Design",
+    tags: ["3D Modeling & Blender", "Motion Graphics", "Brand Identity & Logos"],
+    technologies: ["Blender", "Spline", "Figma", "Three.js"],
+    status: "Open",
+    milestones: [
+      {
+        title: "Milestone 1: 3D Token & Brand Kit",
+        amount: "1.0",
+        deadlineDays: 4,
+        acceptanceCriteria: "3D OBJ/GLTF files and vector brand guidelines delivered.",
+      },
+      {
+        title: "Milestone 2: Spline Interactive Hero Component",
+        amount: "1.5",
+        deadlineDays: 5,
+        acceptanceCriteria: "Smooth 60fps WebGL canvas integration in React.",
+      },
+    ],
+  },
+  {
+    id: "5",
+    title: "Comprehensive MST Blockchain Developer Documentation & Whitepaper",
+    description: "Write in-depth developer tutorials, contract walkthroughs, and technical whitepaper explaining milestone escrow.",
+    client: "0x73595081334A18D4298A160b162faB4Fb4B3c85B",
+    totalBudget: "1.8",
+    reviewWindowHours: 72,
+    category: "Content",
+    tags: ["Technical Writing", "Whitepapers & Litepapers", "Documentation & GitBook"],
+    technologies: ["Markdown", "GitBook", "Solidity"],
+    status: "Open",
+    milestones: [
+      {
+        title: "Milestone 1: Smart Contract Architecture Specification",
+        amount: "0.8",
+        deadlineDays: 4,
+        acceptanceCriteria: "Slither & Foundry verified doc chapter with sequence diagrams.",
+      },
+      {
+        title: "Milestone 2: SDK Quickstart Guides",
+        amount: "1.0",
+        deadlineDays: 4,
+        acceptanceCriteria: "Working code snippets tested on MST Testnet.",
+      },
+    ],
+  },
+  {
+    id: "6",
+    title: "Discord Community Infrastructure & Web3 Verification Bot",
+    description: "Set up enterprise Discord server with tiered access roles tied to ZentrixPass NFTs and BridgeKey verification.",
+    client: "0x8cA0f3176997F32CCBb4598Fc8C966C95aeEEc9e",
+    totalBudget: "1.5",
+    reviewWindowHours: 48,
+    category: "Growth",
+    tags: ["Community Management", "Discord Server Architecture", "DAO Governance"],
+    technologies: ["Discord.js", "Node.js", "Webhooks"],
+    status: "Open",
+    milestones: [
+      {
+        title: "Milestone 1: Server Setup & Permission Matrix",
+        amount: "0.5",
+        deadlineDays: 2,
+        acceptanceCriteria: "Onboarding channels, rules, and moderation hierarchy ready.",
+      },
+      {
+        title: "Milestone 2: Pass NFT Role Sync Bot",
+        amount: "1.0",
+        deadlineDays: 4,
+        acceptanceCriteria: "Bot queries ZentrixPass.tierOf(address) and assigns Discord roles.",
+      },
+    ],
+  },
 ];
 
 export const MarketplacePage: React.FC = () => {
-  const { profile, currentRole } = useAuth();
-  const { address, isConnected, connectWallet } = useWallet();
+  const { currentRole } = useAuth();
+  const { address, isConnected, openConnectModal } = useWallet();
 
   const [gigs, setGigs] = useState<GigItem[]>(INITIAL_GIGS);
+  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [selectedTag, setSelectedTag] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeGig, setActiveGig] = useState<GigItem | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [applyProposal, setApplyProposal] = useState("");
-  const [txPending, setTxPending] = useState(false);
-  const [txSuccessHash, setTxSuccessHash] = useState<string | null>(null);
 
-  // New Gig Form State
+  // New Gig Form State (Choosable tags)
   const [newTitle, setNewTitle] = useState("");
   const [newDesc, setNewDesc] = useState("");
-  const [newTag, setNewTag] = useState("Web3");
+  const [newCategory, setNewCategory] = useState("Development & Web3");
+  const [newSelectedTags, setNewSelectedTags] = useState<string[]>(["Solidity", "Smart Contracts"]);
   const [newMilestones, setNewMilestones] = useState<MilestoneItem[]>([
-    { title: "Milestone 1: Prototype", amount: "1.0", deadlineDays: 5, acceptanceCriteria: "Working MVP deployed on testnet." },
+    { title: "Milestone 1: Prototype Delivery", amount: "1.0", deadlineDays: 5, acceptanceCriteria: "Functional MVP deployed on testnet." },
   ]);
 
-  const allTags = ["All", "Web3", "Frontend", "Smart Contracts", "Security", "AI", "Backend"];
+  const categories = ["All", "Development", "Design", "Content", "AI", "Growth"];
 
   const filteredGigs = gigs.filter((gig) => {
+    const matchesCategory = selectedCategory === "All" || gig.category === selectedCategory;
     const matchesTag = selectedTag === "All" || gig.tags.includes(selectedTag);
     const matchesQuery =
       gig.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
       gig.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      gig.technologies.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
-    return matchesTag && matchesQuery;
+      gig.technologies.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase())) ||
+      gig.tags.some((t) => t.toLowerCase().includes(searchQuery.toLowerCase()));
+    return matchesCategory && matchesTag && matchesQuery;
   });
 
   const handleAddMilestone = () => {
     setNewMilestones([
       ...newMilestones,
       {
-        title: `Milestone ${newMilestones.length + 1}: Final Delivery`,
+        title: `Milestone ${newMilestones.length + 1}: Final Payout Delivery`,
         amount: "1.0",
         deadlineDays: 7,
-        acceptanceCriteria: "Full code delivered with automated tests.",
+        acceptanceCriteria: "Full code and artifacts delivered with verification evidence CID.",
       },
     ]);
   };
@@ -170,7 +258,7 @@ export const MarketplacePage: React.FC = () => {
   const handleCreateGig = (e: React.FormEvent) => {
     e.preventDefault();
     if (!address) {
-      alert("Please connect your wallet first.");
+      openConnectModal();
       return;
     }
 
@@ -183,8 +271,9 @@ export const MarketplacePage: React.FC = () => {
       client: address,
       totalBudget: total,
       reviewWindowHours: 72,
-      tags: [newTag],
-      technologies: ["React", "Solidity", "MST Blockchain"],
+      category: newCategory.includes("Dev") ? "Development" : newCategory.includes("Design") ? "Design" : newCategory.includes("Content") ? "Content" : newCategory.includes("AI") ? "AI" : "Growth",
+      tags: newSelectedTags,
+      technologies: newSelectedTags.slice(0, 3),
       status: "Open",
       milestones: newMilestones,
     };
@@ -193,11 +282,12 @@ export const MarketplacePage: React.FC = () => {
     setIsCreateModalOpen(false);
     setNewTitle("");
     setNewDesc("");
+    alert("Gig created! Depositing tMSTC into ZentrixEscrow on MST Testnet...");
   };
 
   const handleApply = (gig: GigItem) => {
-    if (!isConnected) {
-      connectWallet();
+    if (!isConnected || !address) {
+      openConnectModal();
       return;
     }
     setActiveGig(gig);
@@ -205,19 +295,27 @@ export const MarketplacePage: React.FC = () => {
   };
 
   const submitApplication = () => {
-    alert("Application submitted! Client can now review and assign you to the Escrow contract.");
+    alert("Application proposal submitted! Client can now review and assign you to the Escrow contract.");
     setIsApplyModalOpen(false);
     setApplyProposal("");
   };
 
   return (
     <div className="space-y-8">
-      {/* Header and Post a Gig CTA */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-[var(--zx-border)]">
+      {/* ── Interactive Escrow Flow Infographic ── */}
+      <EscrowFlowInfographic />
+
+      {/* ── Header and Post a Gig CTA ── */}
+      <div
+        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4"
+        style={{ borderBottom: "1px solid var(--zx-border)" }}
+      >
         <div>
-          <h1 className="text-3xl font-extrabold text-[var(--zx-ink)]">Marketplace</h1>
-          <p className="text-sm text-[var(--zx-muted)]">
-            Explore open projects with escrow-backed funding on MST Blockchain.
+          <h1 className="text-3xl font-black" style={{ color: "var(--zx-ink)" }}>
+            Marketplace
+          </h1>
+          <p className="text-xs sm:text-sm mt-0.5" style={{ color: "var(--zx-muted)" }}>
+            Explore open projects with escrow-backed funding across Development, Design, Content, AI & Growth.
           </p>
         </div>
 
@@ -225,98 +323,164 @@ export const MarketplacePage: React.FC = () => {
         <button
           onClick={() => {
             if (!isConnected) {
-              connectWallet();
+              openConnectModal();
             } else {
               setIsCreateModalOpen(true);
             }
           }}
-          className="btn-primary shadow-md"
+          className="btn-primary shadow-md flex items-center gap-2 text-xs py-3 px-5"
         >
-          <PlusCircle className="w-5 h-5" />
-          <span>Post a Gig</span>
+          <PlusCircle className="w-4 h-4" />
+          <span>Post a Milestone Gig</span>
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-        {/* Tag pills */}
-        <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-2 md:pb-0">
-          {allTags.map((tag) => (
+      {/* ── Category Filters & Search Bar ── */}
+      <div className="space-y-3">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+          {/* Category Tabs */}
+          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => {
+                  setSelectedCategory(cat);
+                  setSelectedTag("All");
+                }}
+                className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
+                  selectedCategory === cat
+                    ? "shadow-sm scale-105"
+                    : "opacity-75 hover:opacity-100"
+                }`}
+                style={{
+                  background: selectedCategory === cat ? "var(--zx-primary-deep)" : "var(--zx-surface)",
+                  color: selectedCategory === cat ? "var(--zx-cream)" : "var(--zx-ink)",
+                  border: `1px solid ${selectedCategory === cat ? "var(--zx-primary-deep)" : "var(--zx-border)"}`,
+                }}
+              >
+                {cat}
+              </button>
+            ))}
+          </div>
+
+          {/* Search Input */}
+          <div className="relative w-full md:w-80">
+            <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--zx-muted)]" />
+            <input
+              type="text"
+              placeholder="Search gigs, skills, deliverables..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-10 pr-4 py-2.5 rounded-2xl text-xs focus:outline-none"
+              style={{
+                background: "var(--zx-surface)",
+                border: "1px solid var(--zx-border)",
+                color: "var(--zx-ink)",
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Choosable Sub-Tags Pills */}
+        <div className="flex items-center gap-2 overflow-x-auto pb-2">
+          <button
+            onClick={() => setSelectedTag("All")}
+            className={`px-3 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${
+              selectedTag === "All"
+                ? "shadow-xs"
+                : "opacity-60 hover:opacity-100"
+            }`}
+            style={{
+              background: selectedTag === "All" ? "var(--zx-primary)" : "var(--zx-cream)",
+              color: selectedTag === "All" ? "var(--zx-cream)" : "var(--zx-ink)",
+              border: "1px solid var(--zx-border)",
+            }}
+          >
+            All Skills
+          </button>
+          {ALL_FREELANCE_TAGS.slice(0, 16).map((tag) => (
             <button
               key={tag}
-              onClick={() => setSelectedTag(tag)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap transition-all ${
-                selectedTag === tag
-                  ? "bg-[var(--zx-primary-deep)] text-white shadow-xs"
-                  : "bg-[var(--zx-surface)] text-[var(--zx-ink)] border border-[var(--zx-border)] hover:bg-[var(--zx-surface-alt)]"
+              onClick={() => setSelectedTag(selectedTag === tag ? "All" : tag)}
+              className={`px-3 py-1 rounded-xl text-[11px] font-bold whitespace-nowrap transition-all ${
+                selectedTag === tag ? "shadow-xs" : "opacity-60 hover:opacity-100"
               }`}
+              style={{
+                background: selectedTag === tag ? "var(--zx-primary)" : "var(--zx-cream)",
+                color: selectedTag === tag ? "var(--zx-cream)" : "var(--zx-ink)",
+                border: "1px solid var(--zx-border)",
+              }}
             >
               {tag}
             </button>
           ))}
         </div>
-
-        {/* Search input */}
-        <div className="relative w-full md:w-72">
-          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--zx-muted)]" />
-          <input
-            type="text"
-            placeholder="Search keywords, tech..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl bg-[var(--zx-surface)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--zx-primary-deep)]"
-          />
-        </div>
       </div>
 
-      {/* Gig Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* ── Gig Cards Bento Grid ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
         {filteredGigs.map((gig) => (
           <div
             key={gig.id}
-            className="card-surface card-surface-hover flex flex-col justify-between space-y-4"
+            className="rounded-3xl p-6 flex flex-col justify-between space-y-4 transition-all hover:scale-[1.01] hover:shadow-lg"
+            style={{
+              background: "var(--zx-surface)",
+              border: "1px solid var(--zx-border)",
+            }}
           >
             <div className="space-y-3">
               {/* Header */}
               <div className="flex items-start justify-between gap-2">
-                <span className="badge-tier text-[10px] uppercase font-bold">{gig.tags[0] || "Web3"}</span>
-                <span className="badge-success text-[10px]">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--zx-success)]" />
+                <span
+                  className="text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full"
+                  style={{ background: "var(--zx-surface-alt)", color: "var(--zx-primary-deep)" }}
+                >
+                  {gig.category}
+                </span>
+                <span
+                  className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1"
+                  style={{ background: "color-mix(in srgb, var(--zx-success) 15%, transparent)", color: "var(--zx-success)" }}
+                >
+                  <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--zx-success)" }} />
                   {gig.status}
                 </span>
               </div>
 
               {/* Title & Description */}
               <div>
-                <h3 className="text-lg font-bold text-[var(--zx-ink)] line-clamp-1">{gig.title}</h3>
-                <p className="text-xs text-[var(--zx-muted)] mt-1 line-clamp-2 leading-relaxed">
+                <h3 className="text-base font-black leading-snug line-clamp-1" style={{ color: "var(--zx-ink)" }}>
+                  {gig.title}
+                </h3>
+                <p className="text-xs mt-1.5 line-clamp-2 leading-relaxed" style={{ color: "var(--zx-muted)" }}>
                   {gig.description}
                 </p>
               </div>
 
-              {/* Tech Pills */}
+              {/* Choosable / Visible Tech Tags */}
               <div className="flex flex-wrap gap-1.5 pt-1">
-                {gig.technologies.slice(0, 3).map((t) => (
+                {gig.tags.map((t) => (
                   <span
                     key={t}
-                    className="text-[10px] px-2 py-0.5 rounded bg-[var(--zx-cream)] border border-[var(--zx-border)] text-[var(--zx-ink)] font-mono"
+                    className="text-[10px] px-2.5 py-1 rounded-xl font-bold font-mono"
+                    style={{
+                      background: "var(--zx-cream)",
+                      border: "1px solid var(--zx-border)",
+                      color: "var(--zx-ink)",
+                    }}
                   >
                     {t}
                   </span>
                 ))}
-                {gig.technologies.length > 3 && (
-                  <span className="text-[10px] px-1.5 py-0.5 text-[var(--zx-muted)]">
-                    +{gig.technologies.length - 3}
-                  </span>
-                )}
               </div>
             </div>
 
-            {/* Bottom Meta & CTA */}
-            <div className="pt-3 border-t border-[var(--zx-border)] flex items-center justify-between">
+            {/* Bottom Meta & Actions */}
+            <div className="pt-3 border-t flex items-center justify-between" style={{ borderColor: "var(--zx-border)" }}>
               <div>
-                <div className="text-[10px] uppercase font-semibold text-[var(--zx-muted)]">Total Escrow</div>
-                <div className="text-base font-extrabold text-[var(--zx-primary-deep)] font-mono">
+                <div className="text-[10px] uppercase font-bold" style={{ color: "var(--zx-muted)" }}>
+                  Escrow Budget
+                </div>
+                <div className="text-lg font-black font-mono" style={{ color: "var(--zx-primary-deep)" }}>
                   {gig.totalBudget} tMSTC
                 </div>
               </div>
@@ -326,11 +490,11 @@ export const MarketplacePage: React.FC = () => {
                   onClick={() => setActiveGig(gig)}
                   className="btn-secondary text-xs py-1.5 px-3"
                 >
-                  Details
+                  Milestones
                 </button>
                 <button
                   onClick={() => handleApply(gig)}
-                  className="btn-primary text-xs py-1.5 px-3"
+                  className="btn-primary text-xs py-1.5 px-4 shadow-xs"
                 >
                   Apply
                 </button>
@@ -340,48 +504,71 @@ export const MarketplacePage: React.FC = () => {
         ))}
       </div>
 
-      {/* Gig Details Modal */}
+      {/* ── Gig Details & Milestones Modal ── */}
       {activeGig && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-2xl rounded-2xl bg-[var(--zx-surface)] border border-[var(--zx-border)] shadow-2xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(42, 15, 15, 0.5)", backdropFilter: "blur(6px)" }}
+        >
+          <div
+            className="w-full max-w-2xl rounded-3xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl"
+            style={{
+              background: "var(--zx-surface)",
+              border: "1px solid var(--zx-border)",
+            }}
+          >
             <div className="flex items-start justify-between">
               <div>
-                <span className="badge-tier text-[10px] uppercase font-bold">{activeGig.tags[0]}</span>
-                <h2 className="text-xl font-extrabold text-[var(--zx-ink)] mt-1">{activeGig.title}</h2>
-                <p className="text-xs text-[var(--zx-muted)] mt-0.5 font-mono">
-                  Client: {activeGig.client.slice(0, 6)}...{activeGig.client.slice(-4)} · Review Window:{" "}
-                  {activeGig.reviewWindowHours}h
+                <span
+                  className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full"
+                  style={{ background: "var(--zx-surface-alt)", color: "var(--zx-primary-deep)" }}
+                >
+                  {activeGig.category}
+                </span>
+                <h2 className="text-xl font-black mt-1" style={{ color: "var(--zx-ink)" }}>
+                  {activeGig.title}
+                </h2>
+                <p className="text-xs font-mono mt-0.5" style={{ color: "var(--zx-muted)" }}>
+                  Client: {activeGig.client.slice(0, 8)}...{activeGig.client.slice(-6)} · Review Window: {activeGig.reviewWindowHours}h
                 </p>
               </div>
               <button
                 onClick={() => setActiveGig(null)}
-                className="p-1 rounded-lg hover:bg-[var(--zx-surface-alt)] text-[var(--zx-muted)]"
+                className="p-1.5 rounded-xl hover:scale-105"
+                style={{ background: "var(--zx-cream)", color: "var(--zx-muted)" }}
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <p className="text-sm text-[var(--zx-ink)] leading-relaxed">{activeGig.description}</p>
+            <p className="text-xs sm:text-sm leading-relaxed" style={{ color: "var(--zx-ink)" }}>
+              {activeGig.description}
+            </p>
 
-            {/* Milestones Breakdown */}
+            {/* Milestones Timeline */}
             <div className="space-y-3">
-              <h4 className="text-xs font-bold text-[var(--zx-muted)] uppercase tracking-wider">
-                Milestone Escrow Plan ({activeGig.milestones.length})
+              <h4 className="text-xs font-black uppercase tracking-wider" style={{ color: "var(--zx-muted)" }}>
+                Milestone Escrow Schedule ({activeGig.milestones.length})
               </h4>
               <div className="space-y-2">
                 {activeGig.milestones.map((m, idx) => (
                   <div
                     key={idx}
-                    className="p-3 rounded-xl bg-[var(--zx-cream)] border border-[var(--zx-border)] flex items-start justify-between gap-4"
+                    className="p-4 rounded-2xl flex items-start justify-between gap-4"
+                    style={{ background: "var(--zx-cream)", border: "1px solid var(--zx-border)" }}
                   >
                     <div className="space-y-1">
-                      <div className="text-xs font-bold text-[var(--zx-ink)]">{m.title}</div>
-                      <div className="text-[11px] text-[var(--zx-muted)]">{m.acceptanceCriteria}</div>
-                      <div className="text-[10px] text-[var(--zx-muted)] font-mono">
-                        Deadline: {m.deadlineDays} days after acceptance
+                      <div className="text-xs font-black" style={{ color: "var(--zx-ink)" }}>
+                        {m.title}
+                      </div>
+                      <div className="text-[11px]" style={{ color: "var(--zx-muted)" }}>
+                        {m.acceptanceCriteria}
+                      </div>
+                      <div className="text-[10px] font-mono" style={{ color: "var(--zx-muted)" }}>
+                        Auto-release window: {activeGig.reviewWindowHours}h post-submission
                       </div>
                     </div>
-                    <div className="text-sm font-extrabold text-[var(--zx-primary-deep)] font-mono whitespace-nowrap">
+                    <div className="text-sm font-black font-mono whitespace-nowrap" style={{ color: "var(--zx-primary-deep)" }}>
                       {m.amount} tMSTC
                     </div>
                   </div>
@@ -389,11 +576,14 @@ export const MarketplacePage: React.FC = () => {
               </div>
             </div>
 
-            {/* Total & Action */}
-            <div className="p-4 rounded-xl bg-[var(--zx-surface-alt)] flex items-center justify-between">
+            {/* Total Budget & Proposal CTA */}
+            <div
+              className="p-4 rounded-2xl flex items-center justify-between"
+              style={{ background: "var(--zx-surface-alt)" }}
+            >
               <div>
-                <span className="text-xs text-[var(--zx-muted)]">Total Escrow Value:</span>
-                <span className="text-lg font-black text-[var(--zx-primary-deep)] font-mono ml-2">
+                <span className="text-xs" style={{ color: "var(--zx-muted)" }}>Total Locked Escrow:</span>
+                <span className="text-lg font-black font-mono ml-2" style={{ color: "var(--zx-primary-deep)" }}>
                   {activeGig.totalBudget} tMSTC
                 </span>
               </div>
@@ -403,7 +593,7 @@ export const MarketplacePage: React.FC = () => {
                   setActiveGig(null);
                   handleApply(gig);
                 }}
-                className="btn-primary text-sm py-2 px-5"
+                className="btn-primary text-xs py-2.5 px-6 shadow-sm"
               >
                 Submit Proposal
               </button>
@@ -412,15 +602,32 @@ export const MarketplacePage: React.FC = () => {
         </div>
       )}
 
-      {/* Post a Gig Modal */}
+      {/* ── Post a Gig Modal (Choosable Tags & Milestones) ── */}
       {isCreateModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-2xl rounded-2xl bg-[var(--zx-surface)] border border-[var(--zx-border)] shadow-2xl p-6 space-y-6 max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between border-b border-[var(--zx-border)] pb-3">
-              <h2 className="text-xl font-extrabold text-[var(--zx-ink)]">Post a New Gig</h2>
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(42, 15, 15, 0.5)", backdropFilter: "blur(6px)" }}
+        >
+          <div
+            className="w-full max-w-2xl rounded-3xl p-6 sm:p-8 space-y-6 max-h-[90vh] overflow-y-auto shadow-2xl"
+            style={{
+              background: "var(--zx-surface)",
+              border: "1px solid var(--zx-border)",
+            }}
+          >
+            <div className="flex items-center justify-between pb-3 border-b" style={{ borderColor: "var(--zx-border)" }}>
+              <div>
+                <h2 className="text-xl font-black" style={{ color: "var(--zx-ink)" }}>
+                  Post a Milestone Escrow Gig
+                </h2>
+                <p className="text-xs" style={{ color: "var(--zx-muted)" }}>
+                  Funds are locked on MST Testnet smart contracts upon milestone assignment.
+                </p>
+              </div>
               <button
                 onClick={() => setIsCreateModalOpen(false)}
-                className="p-1 rounded-lg hover:bg-[var(--zx-surface-alt)] text-[var(--zx-muted)]"
+                className="p-1.5 rounded-xl hover:scale-105"
+                style={{ background: "var(--zx-cream)", color: "var(--zx-muted)" }}
               >
                 <X className="w-5 h-5" />
               </button>
@@ -428,37 +635,80 @@ export const MarketplacePage: React.FC = () => {
 
             <form onSubmit={handleCreateGig} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-[var(--zx-ink)] mb-1">Project Title</label>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--zx-ink)" }}>
+                  Project Title
+                </label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Build Web3 Dashboard with BridgeKey"
+                  placeholder="e.g. Build Web3 Staking Dashboard with BridgeKey"
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-[var(--zx-cream)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--zx-primary-deep)]"
+                  className="w-full p-3 rounded-2xl bg-[var(--zx-cream)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[var(--zx-ink)] mb-1">Project Description</label>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--zx-ink)" }}>
+                  Project Description
+                </label>
                 <textarea
                   required
                   rows={3}
-                  placeholder="Describe requirements and expectations..."
+                  placeholder="Describe your requirements, deliverables, and expectations..."
                   value={newDesc}
                   onChange={(e) => setNewDesc(e.target.value)}
-                  className="w-full p-2.5 rounded-xl bg-[var(--zx-cream)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--zx-primary-deep)]"
+                  className="w-full p-3 rounded-2xl bg-[var(--zx-cream)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] focus:outline-none"
                 />
               </div>
 
-              {/* Milestones */}
+              {/* Choosable Tag Selector for Gig */}
+              <div>
+                <label className="block text-xs font-bold uppercase tracking-wider mb-1.5" style={{ color: "var(--zx-ink)" }}>
+                  Choose Required Skills & Tags
+                </label>
+                <div className="p-3.5 rounded-2xl bg-[var(--zx-cream)] border border-[var(--zx-border)] space-y-2">
+                  <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto">
+                    {ALL_FREELANCE_TAGS.map((t) => {
+                      const isSelected = newSelectedTags.includes(t);
+                      return (
+                        <button
+                          key={t}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setNewSelectedTags(newSelectedTags.filter((x) => x !== t));
+                            } else {
+                              setNewSelectedTags([...newSelectedTags, t]);
+                            }
+                          }}
+                          className="px-2.5 py-1 rounded-xl text-[10px] font-bold transition-all"
+                          style={{
+                            background: isSelected ? "var(--zx-primary-deep)" : "var(--zx-surface)",
+                            color: isSelected ? "var(--zx-cream)" : "var(--zx-ink)",
+                            border: `1px solid ${isSelected ? "var(--zx-primary-deep)" : "var(--zx-border)"}`,
+                          }}
+                        >
+                          {isSelected ? "✓ " : "+ "}
+                          {t}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+
+              {/* Milestones Schedule */}
               <div className="space-y-3 pt-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-bold text-[var(--zx-ink)] uppercase">Milestone Plan</label>
+                  <label className="text-xs font-bold uppercase tracking-wider" style={{ color: "var(--zx-ink)" }}>
+                    Milestone Schedule
+                  </label>
                   <button
                     type="button"
                     onClick={handleAddMilestone}
-                    className="text-xs font-bold text-[var(--zx-primary-deep)] hover:underline flex items-center gap-1"
+                    className="text-xs font-bold flex items-center gap-1 hover:underline"
+                    style={{ color: "var(--zx-primary-deep)" }}
                   >
                     <PlusCircle className="w-3.5 h-3.5" />
                     <span>Add Milestone</span>
@@ -466,7 +716,7 @@ export const MarketplacePage: React.FC = () => {
                 </div>
 
                 {newMilestones.map((m, idx) => (
-                  <div key={idx} className="p-3 rounded-xl bg-[var(--zx-cream)] border border-[var(--zx-border)] space-y-2">
+                  <div key={idx} className="p-3.5 rounded-2xl bg-[var(--zx-cream)] border border-[var(--zx-border)] space-y-2">
                     <div className="flex gap-2">
                       <input
                         type="text"
@@ -477,7 +727,7 @@ export const MarketplacePage: React.FC = () => {
                           updated[idx].title = e.target.value;
                           setNewMilestones(updated);
                         }}
-                        className="flex-1 p-2 rounded-lg bg-[var(--zx-surface)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)]"
+                        className="flex-1 p-2 rounded-xl bg-[var(--zx-surface)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)]"
                       />
                       <input
                         type="number"
@@ -489,7 +739,7 @@ export const MarketplacePage: React.FC = () => {
                           updated[idx].amount = e.target.value;
                           setNewMilestones(updated);
                         }}
-                        className="w-28 p-2 rounded-lg bg-[var(--zx-surface)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] font-mono"
+                        className="w-32 p-2 rounded-xl bg-[var(--zx-surface)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] font-mono"
                       />
                     </div>
                     <input
@@ -501,13 +751,13 @@ export const MarketplacePage: React.FC = () => {
                         updated[idx].acceptanceCriteria = e.target.value;
                         setNewMilestones(updated);
                       }}
-                      className="w-full p-2 rounded-lg bg-[var(--zx-surface)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)]"
+                      className="w-full p-2 rounded-xl bg-[var(--zx-surface)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)]"
                     />
                   </div>
                 ))}
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-4 border-t border-[var(--zx-border)]">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t" style={{ borderColor: "var(--zx-border)" }}>
                 <button
                   type="button"
                   onClick={() => setIsCreateModalOpen(false)}
@@ -515,8 +765,8 @@ export const MarketplacePage: React.FC = () => {
                 >
                   Cancel
                 </button>
-                <button type="submit" className="btn-primary text-xs">
-                  Create Gig
+                <button type="submit" className="btn-primary text-xs py-2.5 px-6">
+                  Create & Lock Escrow
                 </button>
               </div>
             </form>
@@ -524,23 +774,33 @@ export const MarketplacePage: React.FC = () => {
         </div>
       )}
 
-      {/* Apply Modal */}
+      {/* ── Apply Proposal Modal ── */}
       {isApplyModalOpen && activeGig && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs">
-          <div className="w-full max-w-md rounded-2xl bg-[var(--zx-surface)] border border-[var(--zx-border)] shadow-2xl p-6 space-y-4">
-            <h3 className="text-lg font-bold text-[var(--zx-ink)]">Apply for {activeGig.title}</h3>
-            <p className="text-xs text-[var(--zx-muted)]">
-              Your proposal will be saved to Firestore and visible to the client. Upon acceptance, client funds the
-              contract escrow on MST Testnet.
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          style={{ background: "rgba(42, 15, 15, 0.5)", backdropFilter: "blur(6px)" }}
+        >
+          <div
+            className="w-full max-w-md rounded-3xl p-6 space-y-4 shadow-2xl"
+            style={{
+              background: "var(--zx-surface)",
+              border: "1px solid var(--zx-border)",
+            }}
+          >
+            <h3 className="text-lg font-black" style={{ color: "var(--zx-ink)" }}>
+              Apply for {activeGig.title}
+            </h3>
+            <p className="text-xs" style={{ color: "var(--zx-muted)" }}>
+              Submit your delivery approach and timeframe. Client funds the milestone escrow upon accepting your proposal.
             </p>
 
             <textarea
               rows={4}
               required
-              placeholder="State your relevant experience, proposed milestones, and delivery timeline..."
+              placeholder="Explain your relevant experience, proposed milestone timeline, and evidence CID delivery method..."
               value={applyProposal}
               onChange={(e) => setApplyProposal(e.target.value)}
-              className="w-full p-2.5 rounded-xl bg-[var(--zx-cream)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] focus:outline-none focus:ring-2 focus:ring-[var(--zx-primary-deep)]"
+              className="w-full p-3 rounded-2xl bg-[var(--zx-cream)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] focus:outline-none"
             />
 
             <div className="flex items-center justify-end gap-3 pt-2">
@@ -552,7 +812,7 @@ export const MarketplacePage: React.FC = () => {
               </button>
               <button
                 onClick={submitApplication}
-                className="btn-primary text-xs flex items-center gap-1.5"
+                className="btn-primary text-xs py-2.5 px-5 flex items-center gap-1.5"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Submit Proposal</span>

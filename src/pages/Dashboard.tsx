@@ -34,7 +34,7 @@ const TIER_LABELS: Record<number, string> = {
 
 export const DashboardPage: React.FC = () => {
   const { currentRole, updateRole } = useAuth();
-  const { address, signer, provider, isConnected, connectWallet } = useWallet();
+  const { address, signer, provider, isConnected, connectWallet, openConnectModal } = useWallet();
 
   const [metrics, setMetrics] = useState<OnChainMetrics>({
     withdrawable: "0",
@@ -155,10 +155,10 @@ export const DashboardPage: React.FC = () => {
             Connect BridgeKey to see your real on-chain escrow balance, pass tier, and reputation.
           </p>
         </div>
-        <button onClick={connectWallet}
-          className="inline-flex items-center gap-2 font-bold rounded-2xl px-6 py-3 text-sm"
-          style={{ background: "var(--zx-primary-deep)", color: "#fff" }}>
-          Connect BridgeKey
+        <button onClick={openConnectModal}
+          className="inline-flex items-center gap-2 font-bold rounded-2xl px-6 py-3 text-sm shadow-md"
+          style={{ background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }}>
+          Connect Wallet
         </button>
       </div>
     );
@@ -183,7 +183,7 @@ export const DashboardPage: React.FC = () => {
             <button key={role} onClick={() => updateRole(role)}
               className="text-xs px-4 py-2 rounded-xl font-bold capitalize transition-all"
               style={currentRole === role
-                ? { background: "var(--zx-primary-deep)", color: "#fff" }
+                ? { background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }
                 : { color: "var(--zx-muted)" }}>
               {role}
             </button>
@@ -237,7 +237,7 @@ export const DashboardPage: React.FC = () => {
           {currentRole === "freelancer" && (
             <button onClick={handleWithdraw} disabled={withdrawing || metrics.loading}
               className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all"
-              style={{ background: "var(--zx-primary)", color: "#fff" }}>
+              style={{ background: "var(--zx-primary)", color: "var(--zx-cream)" }}>
               {withdrawing ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
               {withdrawing ? "Processing..." : "Pull Withdraw"}
             </button>
@@ -354,12 +354,12 @@ export const DashboardPage: React.FC = () => {
                   </a>
                   {currentRole === "client" ? (
                     <button className="text-xs font-bold px-3 py-1.5 rounded-xl"
-                      style={{ background: "var(--zx-primary-deep)", color: "#fff" }}>
+                      style={{ background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }}>
                       Review
                     </button>
                   ) : (
                     <button className="text-xs font-bold px-3 py-1.5 rounded-xl"
-                      style={{ background: "var(--zx-primary-deep)", color: "#fff" }}>
+                      style={{ background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }}>
                       Submit
                     </button>
                   )}
@@ -381,7 +381,7 @@ export const DashboardPage: React.FC = () => {
                   <div className="flex items-center gap-3">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-black"
                       style={status === "approved"
-                        ? { background: "var(--zx-success)", color: "#fff" }
+                        ? { background: "var(--zx-success)", color: "var(--zx-cream)" }
                         : status === "review"
                           ? { background: "var(--zx-surface-alt)", color: "var(--zx-primary-deep)" }
                           : { background: "var(--zx-border)", color: "var(--zx-muted)" }}>

@@ -108,7 +108,7 @@ const TIER_META = [
 // ─── Main Component ────────────────────────────────────────────────────────────
 
 export const PricingPage: React.FC = () => {
-  const { address, signer, provider, isConnected, connectWallet, switchNetwork, isCorrectNetwork } =
+  const { address, signer, provider, isConnected, connectWallet, switchNetwork, isCorrectNetwork, openConnectModal } =
     useWallet();
 
   const [chain, setChain] = useState<ChainState>({
@@ -187,7 +187,7 @@ export const PricingPage: React.FC = () => {
 
   const handleBuy = async (tierId: number) => {
     if (!isConnected) {
-      await connectWallet();
+      openConnectModal();
       return;
     }
     if (!isCorrectNetwork) {

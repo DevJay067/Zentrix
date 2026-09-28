@@ -19,7 +19,7 @@ import {
 export const Navbar: React.FC = () => {
   const { pathname } = useLocation();
   const { user, profile, currentRole, updateRole, logout } = useAuth();
-  const { address, isConnected, isCorrectNetwork, connectWallet, switchNetwork } = useWallet();
+  const { address, isConnected, isCorrectNetwork, connectWallet, switchNetwork, openConnectModal } = useWallet();
 
   const [productsOpen, setProductsOpen] = useState(false);
   const [monitorOpen, setMonitorOpen] = useState(false);
@@ -252,9 +252,9 @@ export const Navbar: React.FC = () => {
             </Link>
           ) : !isConnected ? (
             /* Needs wallet */
-            <button onClick={connectWallet} className="btn-primary text-sm shadow-sm flex items-center gap-2">
+            <button onClick={openConnectModal} className="btn-primary text-sm shadow-sm flex items-center gap-2">
               <Wallet className="w-4 h-4" />
-              <span>Connect BridgeKey</span>
+              <span>Connect Wallet</span>
             </button>
           ) : (
             /* Fully connected — wallet address pill + profile dropdown */

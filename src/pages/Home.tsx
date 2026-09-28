@@ -89,7 +89,7 @@ export const HomePage: React.FC = () => {
               className="inline-flex items-center gap-2 font-bold rounded-2xl px-6 py-3 text-sm shadow-lg transition-all hover:scale-105"
               style={{
                 background: "var(--zx-primary)",
-                color: "#fff",
+                color: "var(--zx-cream)",
                 boxShadow: "0 0 24px rgba(216,64,64,0.45)",
               }}>
               Explore Gigs <ArrowRight className="w-4 h-4" />
@@ -312,7 +312,7 @@ export const HomePage: React.FC = () => {
         <div className="flex items-center justify-center pt-2">
           <Link to="/marketplace"
             className="inline-flex items-center gap-2 font-bold rounded-2xl px-6 py-3 text-sm transition-all hover:scale-105"
-            style={{ background: "var(--zx-primary-deep)", color: "#fff" }}>
+            style={{ background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }}>
             Get Started <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
