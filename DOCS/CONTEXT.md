@@ -149,6 +149,34 @@ graph TD
 - Pre-hydrates directly on mount from `zx_cached_role` and `zx_cached_profile`.
 - Synchronizes with Firebase Auth and Firestore.
 
+### 6.5 Route Protection & Access Control (`src/App.tsx`)
+- **Protected Routes (`ProtectedRoute`):** Strict authentication guard on core operational portals:
+  - `/marketplace`: Milestone gig listings and applications
+  - `/agent`: Sarvam 30B talent search agent
+  - `/dashboard`: Milestone escrow telemetry and withdrawals
+  - `/profile`: User role management and identity settings
+- **Public Routes:** Accessible to all visitors without requiring authentication:
+  - `/`: Protocol landing page
+  - `/pricing`: ZentrixPass tier pricing & pass NFT purchasing
+  - `/about`: Network parameters & technical architecture
+  - `/manual`: Comprehensive protocol user manual
+  - `/contact`: Direct sync inquiry desk
+  - `/disclosure`: Legal terms & digital signature specifications
+  - `/login`: Web3 & Firebase authentication portal
+  - `/onboarding`: Progressive role & profile setup
+
+### 6.6 Web3 Login & Pass Tier Architecture (`src/pages/Login.tsx` & `src/pages/Dashboard.tsx`)
+- **Elegant Web3 Login UI:**
+  - Ambient glowing glassmorphic card with protocol trust pills (non-custodial escrow, BridgeKey signing, Sarvam 30B AI).
+  - Dual-mode tab switcher: Web3 Wallet (BridgeKey 1-click connect & auto MST network switch) and Firebase Auth (Email/Password & Google OAuth).
+  - State-aware redirection: preserves `from` route so redirected users seamlessly return to their destination post-login.
+- **ZentrixPass Tier Representation:**
+  - On-chain and cached asset scanning via `scanNFTAssets()` and `getCachedNFTAssets()`.
+  - **Tier 0 (Free):** 2 Sarvam queries/day, `/1.gif` rendered in grayscale with lock badge.
+  - **Tier 1 (PRO):** 10 Sarvam queries/day, `/1.gif` rendered in full color with PRO badge.
+  - **Tier 2 (Enterprise):** 15 Sarvam queries/day, `/2.gif` rendered in full color with ENT badge.
+  - Rate limiting enforced on the Bun backend server (`server/index.ts`).
+
 ---
 
 ## 7. Digital Signature Disclosure Protocol (`docs/ONCHAIN_DISCLOSURE_SIGNATURES.md`)

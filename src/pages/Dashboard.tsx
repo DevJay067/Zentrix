@@ -15,12 +15,14 @@ import {
   TrendingUp,
   AlertCircle,
   Loader2,
+  Lock,
+  Zap,
 } from "lucide-react";
 
 interface OnChainMetrics {
   withdrawable: string;   // ethers.formatEther result
   passTokenId: number | null;
-  passTier: number | null;
+  passTier: number;       // 0=Free, 1=PRO, 2=Enterprise
   reputationTokenCount: number;
   loading: boolean;
   error: string | null;
@@ -67,10 +69,9 @@ const DEFAULT_MILESTONES: DashboardMilestone[] = [
 ];
 
 const TIER_LABELS: Record<number, string> = {
-  0: "None",
-  1: "Scout",
-  2: "Builder",
-  3: "Architect",
+  0: "Free",
+  1: "PRO",
+  2: "Enterprise",
 };
 
 export const DashboardPage: React.FC = () => {
@@ -81,7 +82,7 @@ export const DashboardPage: React.FC = () => {
   const [metrics, setMetrics] = useState<OnChainMetrics>({
     withdrawable: "0",
     passTokenId: cachedNft.passTokenId ? Number(cachedNft.passTokenId) : null,
-    passTier: cachedNft.passTier > 0 ? cachedNft.passTier : null,
+    passTier: cachedNft.passTier ?? 0,
     reputationTokenCount: cachedNft.reputationCount,
     loading: false,
     error: null,
@@ -183,7 +184,7 @@ export const DashboardPage: React.FC = () => {
 
       // Deep scan all on-chain NFT assets (Passes, Events, SBTs)
       const scan = await scanNFTAssets(address, provider);
-      const passTier = scan.passTier > 0 ? scan.passTier : null;
+      const passTier = scan.passTier ?? 0;
       const passTokenId = scan.passTokenId ? Number(scan.passTokenId) : null;
       const reputationTokenCount = scan.reputationCount;
 
@@ -221,7 +222,7 @@ export const DashboardPage: React.FC = () => {
       if (d) {
         setMetrics((m) => ({
           ...m,
-          passTier: d.passTier > 0 ? d.passTier : m.passTier,
+          passTier: typeof d.passTier === "number" ? d.passTier : m.passTier,
           passTokenId: d.passTokenId ? Number(d.passTokenId) : m.passTokenId,
           reputationTokenCount: d.reputationCount ?? m.reputationTokenCount,
         }));
@@ -432,46 +433,99 @@ export const DashboardPage: React.FC = () => {
         </div>
 
         {/* Pass tier */}
-        <div className="rounded-3xl p-6 space-y-3 relative overflow-hidden flex items-start justify-between gap-4"
-          style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}>
+        <div
+          className="rounded-3xl p-6 space-y-3 relative overflow-hidden flex items-start justify-between gap-4 shadow-xs"
+          style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
+        >
           <div className="space-y-3 flex-1">
             <div className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--zx-muted)" }}>
               ZentrixPass Tier
             </div>
-            <div className="flex items-end gap-2">
-              <div className="text-4xl font-black" style={{ color: "var(--zx-primary-deep)" }}>
-                {metrics.loading
-                  ? <Loader2 className="w-8 h-8 animate-spin inline" style={{ color: "var(--zx-primary)" }} />
-                  : TIER_LABELS[metrics.passTier ?? 0]
-                }
+            <div className="flex items-baseline gap-2">
+              <div className="text-3xl sm:text-4xl font-black">
+                {metrics.loading ? (
+                  <Loader2 className="w-8 h-8 animate-spin inline" style={{ color: "var(--zx-primary)" }} />
+                ) : (
+                  <span
+                    className={
+                      metrics.passTier === 2
+                        ? "text-amber-700"
+                        : metrics.passTier === 1
+                        ? "text-emerald-700"
+                        : "text-[var(--zx-ink)]"
+                    }
+                  >
+                    {TIER_LABELS[metrics.passTier] || "Free"}
+                  </span>
+                )}
               </div>
+              <span className="text-xs font-bold font-mono text-[var(--zx-muted)]">
+                {metrics.passTier === 2
+                  ? "(15 queries/day)"
+                  : metrics.passTier === 1
+                  ? "(10 queries/day)"
+                  : "(2 queries/day)"}
+              </span>
             </div>
-            <p className="text-xs" style={{ color: "var(--zx-muted)" }}>
-              {metrics.passTier ? "Active pass — AI query credits unlocked" : "No pass minted yet"}
+            <p className="text-xs leading-relaxed" style={{ color: "var(--zx-muted)" }}>
+              {metrics.passTier === 2
+                ? "Enterprise Soulbound NFT active — 15 AI queries daily"
+                : metrics.passTier === 1
+                ? "Pro Soulbound NFT active — 10 AI queries daily"
+                : "Free Starter allowance — 2 AI queries daily"}
             </p>
-            {!metrics.passTier ? (
-              <Link to="/pricing" className="text-xs font-bold" style={{ color: "var(--zx-primary-deep)" }}>
-                Mint a Pass →
+            {metrics.passTier === 0 ? (
+              <Link
+                to="/pricing"
+                className="inline-flex items-center gap-1 text-xs font-bold hover:underline"
+                style={{ color: "var(--zx-primary-deep)" }}
+              >
+                <span>Upgrade to PRO or Enterprise Pass →</span>
               </Link>
             ) : (
-              <div className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+              <div className="inline-flex items-center gap-1.5 text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>Original Color Active</span>
+                <span>Soulbound NFT Active · Full Color</span>
               </div>
             )}
           </div>
 
-          {/* Mini NFT Visual preview */}
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl overflow-hidden border shrink-0 bg-black shadow-sm relative group">
+          {/* Fixed Mini NFT Visual preview */}
+          <div
+            className={`w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 shrink-0 bg-black shadow-md relative group transition-all duration-300 ${
+              metrics.passTier === 2
+                ? "border-amber-400/90 shadow-amber-950/20"
+                : metrics.passTier === 1
+                ? "border-emerald-400/90 shadow-emerald-950/20"
+                : "border-slate-300 shadow-slate-200"
+            }`}
+          >
             <img
               src={metrics.passTier === 2 ? "/2.gif" : "/1.gif"}
-              alt="Pass NFT"
-              className={`w-full h-full object-cover transition-all duration-300 ${
-                metrics.passTier
-                  ? "grayscale-0 group-hover:scale-105"
-                  : "grayscale opacity-50 group-hover:grayscale-0 group-hover:opacity-100"
+              alt={
+                metrics.passTier === 2
+                  ? "Enterprise Pass NFT"
+                  : metrics.passTier === 1
+                  ? "PRO Pass NFT"
+                  : "Free Starter Pass"
+              }
+              className={`w-full h-full object-cover transition-all duration-500 ${
+                metrics.passTier > 0
+                  ? "grayscale-0 group-hover:scale-110"
+                  : "grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
               }`}
             />
+            {metrics.passTier > 0 ? (
+              <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full bg-black/80 backdrop-blur-xs text-[9px] font-mono font-bold text-emerald-300 border border-emerald-500/40 flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{metrics.passTier === 2 ? "ENT" : "PRO"}</span>
+              </div>
+            ) : (
+              <div className="absolute bottom-1 right-1 px-1.5 py-0.5 rounded-full bg-black/80 backdrop-blur-xs text-[9px] font-mono font-bold text-slate-300 border border-white/20 flex items-center gap-1">
+                <Lock className="w-2.5 h-2.5 text-slate-400" />
+                <span>FREE</span>
+              </div>
+            )}
           </div>
         </div>
 

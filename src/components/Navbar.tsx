@@ -20,6 +20,7 @@ import {
   MessageSquare,
   BookOpen,
   FileText,
+  Lock,
 } from "lucide-react";
 import { AmbientAudio } from "./AmbientAudio";
 
@@ -33,6 +34,11 @@ export const Navbar: React.FC = () => {
     switchNetwork,
     openConnectModal,
   } = useWallet();
+
+  const isAuthenticated =
+    !!user ||
+    (isConnected && !!address) ||
+    (typeof window !== "undefined" && localStorage.getItem("zx_wallet_approved") === "true");
 
   const [productsOpen, setProductsOpen] = useState(false);
   const [monitorOpen, setMonitorOpen] = useState(false);
@@ -194,9 +200,16 @@ export const Navbar: React.FC = () => {
                     <div className="p-2 rounded-lg bg-red-50 text-[var(--zx-primary-deep)] group-hover:scale-105 transition-transform">
                       <Briefcase className="w-4 h-4" />
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-[var(--zx-ink)]">
-                        Marketplace
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--zx-ink)]">
+                          Marketplace
+                        </span>
+                        {!isAuthenticated && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            <Lock className="w-2.5 h-2.5" /> Login
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-[var(--zx-muted)]">
                         On-chain milestone gigs
@@ -212,9 +225,16 @@ export const Navbar: React.FC = () => {
                     <div className="p-2 rounded-lg bg-amber-50 text-amber-700 group-hover:scale-105 transition-transform flex items-center justify-center">
                       <img src="/robot.png" alt="AI Agent" className="w-4 h-4 object-contain" />
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-[var(--zx-ink)]">
-                        AI Agent
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--zx-ink)]">
+                          AI Agent
+                        </span>
+                        {!isAuthenticated && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            <Lock className="w-2.5 h-2.5" /> Login
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-[var(--zx-muted)]">
                         Sarvam AI talent search
@@ -266,9 +286,16 @@ export const Navbar: React.FC = () => {
                     <div className="p-2 rounded-lg bg-red-50 text-[var(--zx-primary-deep)] group-hover:scale-105 transition-transform">
                       <BarChart3 className="w-4 h-4" />
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-[var(--zx-ink)]">
-                        Dashboard
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--zx-ink)]">
+                          Dashboard
+                        </span>
+                        {!isAuthenticated && (
+                          <span className="inline-flex items-center gap-1 text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                            <Lock className="w-2.5 h-2.5" /> Login
+                          </span>
+                        )}
                       </div>
                       <div className="text-[11px] text-[var(--zx-muted)]">
                         Live escrow metrics
@@ -284,9 +311,14 @@ export const Navbar: React.FC = () => {
                     <div className="p-2 rounded-lg bg-amber-50 text-amber-700 group-hover:scale-105 transition-transform">
                       <CreditCard className="w-4 h-4" />
                     </div>
-                    <div>
-                      <div className="text-xs font-bold text-[var(--zx-ink)]">
-                        Pricing & Passes
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-bold text-[var(--zx-ink)]">
+                          Pricing & Passes
+                        </span>
+                        <span className="inline-flex items-center text-[9px] font-mono px-1.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          Public
+                        </span>
                       </div>
                       <div className="text-[11px] text-[var(--zx-muted)]">
                         Pass NFT credits
@@ -625,43 +657,59 @@ export const Navbar: React.FC = () => {
             </Link>
             <Link
               to="/marketplace"
-              className={`p-3 rounded-2xl flex items-center gap-2 ${
+              className={`p-3 rounded-2xl flex items-center justify-between ${
                 isActivePrefix("/marketplace")
                   ? "bg-red-50 text-[var(--zx-primary-deep)]"
                   : "bg-slate-50 text-slate-700"
               }`}
             >
-              Marketplace
+              <div className="flex items-center gap-2">
+                <Briefcase className="w-3.5 h-3.5" />
+                <span>Marketplace</span>
+              </div>
+              {!isAuthenticated && <Lock className="w-3 h-3 text-slate-400" />}
             </Link>
             <Link
               to="/agent"
-              className={`p-3 rounded-2xl flex items-center gap-2 ${
+              className={`p-3 rounded-2xl flex items-center justify-between ${
                 isActivePrefix("/agent")
                   ? "bg-red-50 text-[var(--zx-primary-deep)]"
                   : "bg-slate-50 text-slate-700"
               }`}
             >
-              AI Agent
+              <div className="flex items-center gap-2">
+                <img src="/robot.png" alt="AI" className="w-3.5 h-3.5 object-contain" />
+                <span>AI Agent</span>
+              </div>
+              {!isAuthenticated && <Lock className="w-3 h-3 text-slate-400" />}
             </Link>
             <Link
               to="/dashboard"
-              className={`p-3 rounded-2xl flex items-center gap-2 ${
+              className={`p-3 rounded-2xl flex items-center justify-between ${
                 isActivePrefix("/dashboard")
                   ? "bg-red-50 text-[var(--zx-primary-deep)]"
                   : "bg-slate-50 text-slate-700"
               }`}
             >
-              Dashboard
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-3.5 h-3.5" />
+                <span>Dashboard</span>
+              </div>
+              {!isAuthenticated && <Lock className="w-3 h-3 text-slate-400" />}
             </Link>
             <Link
               to="/pricing"
-              className={`p-3 rounded-2xl flex items-center gap-2 ${
+              className={`p-3 rounded-2xl flex items-center justify-between ${
                 isActivePrefix("/pricing")
                   ? "bg-red-50 text-[var(--zx-primary-deep)]"
                   : "bg-slate-50 text-slate-700"
               }`}
             >
-              Pricing
+              <div className="flex items-center gap-2">
+                <CreditCard className="w-3.5 h-3.5" />
+                <span>Pricing</span>
+              </div>
+              <span className="text-[9px] font-mono text-emerald-600 bg-emerald-50 px-1 rounded border border-emerald-200">Public</span>
             </Link>
 
             <Link

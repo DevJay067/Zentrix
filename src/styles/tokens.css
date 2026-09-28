@@ -20,4 +20,10 @@
   --zx-focus-ring: rgba(163, 4, 2, 0.2);
   --zx-card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04), 0 1px 2px -1px rgba(0, 0, 0, 0.04);
   --zx-card-shadow-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.06), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+
+  /* OAuth Brands */
+  --zx-google-blue: #4285F4;
+  --zx-google-green: #34A853;
+  --zx-google-yellow: #FBBC05;
+  --zx-google-red: #EA4335;
 }

@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
 import { SplashScreen } from "./components/SplashScreen";
 import { HomePage } from "./pages/Home";
@@ -16,6 +16,44 @@ import { ContactPage } from "./pages/Contact";
 import { ManualPage } from "./pages/Manual";
 import { Footer } from "./components/Footer";
 import { CursorFollower } from "./components/CursorFollower";
+import { useAuth } from "./context/AuthContext";
+import { useWallet } from "./context/WalletContext";
+
+interface ProtectedRouteProps {
+  children: React.ReactNode;
+}
+
+/**
+ * Strict authentication guard for Services & Monitor sections (except Pricing).
+ * Permits access only to authenticated Firebase users or approved Web3 connected addresses.
+ */
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const { user, loading } = useAuth();
+  const { isConnected, address } = useWallet();
+  const location = useLocation();
+
+  if (loading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-3">
+        <div
+          className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
+          style={{ borderColor: "var(--zx-primary)", borderTopColor: "transparent" }}
+        />
+        <span className="text-xs font-mono text-[var(--zx-muted)]">Verifying authentication...</span>
+      </div>
+    );
+  }
+
+  const isWalletApproved =
+    typeof window !== "undefined" && localStorage.getItem("zx_wallet_approved") === "true";
+  const isAuthenticated = !!user || (isConnected && !!address) || isWalletApproved;
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  return <>{children}</>;
+};
 
 export const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -31,18 +69,49 @@ export const App: React.FC = () => {
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/marketplace" element={<MarketplacePage />} />
-          <Route path="/agent" element={<AgentPage />} />
           <Route path="/pricing" element={<PricingPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
           <Route path="/disclosure" element={<DisclosurePage />} />
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/manual" element={<ManualPage />} />
+
+          {/* Protected Routes (Strict Login Required: Services & Monitor except pricing) */}
+          <Route
+            path="/marketplace"
+            element={
+              <ProtectedRoute>
+                <MarketplacePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/agent"
+            element={
+              <ProtectedRoute>
+                <AgentPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </main>
 
