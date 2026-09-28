@@ -15,6 +15,7 @@ import {
   X,
   KeyRound,
 } from "lucide-react";
+import { AmbientAudio } from "./AmbientAudio";
 
 export const Navbar: React.FC = () => {
   const { pathname } = useLocation();
@@ -218,6 +219,11 @@ export const Navbar: React.FC = () => {
 
         {/* ─── RIGHT: Actions ─── */}
         <div className="flex items-center gap-2">
+          {/* Ambient Sound Toggle */}
+          <div className="hidden sm:flex items-center">
+            <AmbientAudio />
+          </div>
+
           {/* Network badge */}
           {isConnected && (
             <div className="hidden sm:flex items-center">
@@ -410,6 +416,10 @@ export const Navbar: React.FC = () => {
                 <Link to="/dashboard" className={`block ${navLinkClass(isActivePrefix("/dashboard"))}`}>Dashboard</Link>
               </div>
             )}
+          </div>
+
+          <div className="pt-2 pb-1">
+            <AmbientAudio />
           </div>
 
           {/* Network badge (mobile) */}

@@ -5,155 +5,109 @@ interface SplashScreenProps {
 }
 
 export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
-  const [phase, setPhase] = useState<"enter" | "hold" | "exit">("enter");
-  const [progress, setProgress] = useState(0);
-  const [statusText, setStatusText] = useState("Connecting to MST Testnet...");
+  const [percent, setPercent] = useState<number>(12);
+  const [phaseIndex, setPhaseIndex] = useState<number>(0);
+  const [isFading, setIsFading] = useState<boolean>(false);
+
+  const statusPhases = [
+    "INITIALIZING PROTOCOL // MST CHAIN 91562037",
+    "RESOLVING NON-CUSTODIAL ESCROW REGISTRY",
+    "ESTABLISHING SARVAM-30B AI AGENT PIPELINE",
+    "VERIFIED // ENTERING ZENTRIX MARKETPLACE",
+  ];
 
   useEffect(() => {
-    const messages = [
-      { at: 0, text: "Connecting to MST Testnet..." },
-      { at: 700, text: "Loading escrow contracts..." },
-      { at: 1400, text: "Verifying BridgeKey provider..." },
-      { at: 2000, text: "Initialising Sarvam AI agent..." },
-    ];
+    // 1.5-second (1500ms) total timeline
+    const startTime = Date.now();
+    const duration = 1250; // ticker stops at 1250ms
 
-    messages.forEach(({ at, text }) => {
-      setTimeout(() => setStatusText(text), at);
-    });
-
-    // Progress bar over 2400ms
-    const start = Date.now();
     const interval = setInterval(() => {
-      const elapsed = Date.now() - start;
-      const pct = Math.min((elapsed / 2400) * 100, 100);
-      setProgress(pct);
-      if (pct >= 100) clearInterval(interval);
-    }, 20);
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(Math.floor((elapsed / duration) * 100), 100);
+      setPercent(progress);
 
-    // Fade-out then fire onComplete
-    const holdTimer = setTimeout(() => setPhase("exit"), 2500);
-    const doneTimer = setTimeout(() => onComplete(), 2900);
+      if (elapsed < 350) {
+        setPhaseIndex(0);
+      } else if (elapsed < 700) {
+        setPhaseIndex(1);
+      } else if (elapsed < 1100) {
+        setPhaseIndex(2);
+      } else {
+        setPhaseIndex(3);
+      }
+
+      if (elapsed >= duration) {
+        clearInterval(interval);
+      }
+    }, 25);
+
+    // Fade out at 1350ms, call onComplete at 1500ms
+    const fadeTimer = setTimeout(() => {
+      setIsFading(true);
+    }, 1350);
+
+    const completeTimer = setTimeout(() => {
+      onComplete();
+    }, 1500);
 
     return () => {
       clearInterval(interval);
-      clearTimeout(holdTimer);
-      clearTimeout(doneTimer);
+      clearTimeout(fadeTimer);
+      clearTimeout(completeTimer);
     };
   }, [onComplete]);
 
   return (
     <div
-      className="fixed inset-0 z-[9999] flex flex-col items-center justify-center"
+      className="fixed inset-0 z-[99999] flex flex-col justify-between p-6 sm:p-12 font-mono select-none"
       style={{
         background: "var(--zx-ink)",
-        opacity: phase === "exit" ? 0 : 1,
-        transition: "opacity 0.4s ease-out",
-        pointerEvents: phase === "exit" ? "none" : "all",
+        color: "var(--zx-cream)",
+        opacity: isFading ? 0 : 1,
+        transition: "opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
+        pointerEvents: isFading ? "none" : "all",
       }}
     >
-      {/* Ambient glow blobs */}
-      <div
-        className="absolute inset-0 overflow-hidden pointer-events-none"
-        aria-hidden
-      >
-        <div
-          className="absolute -top-32 -left-32 w-96 h-96 rounded-full opacity-20 blur-3xl"
-          style={{ background: "var(--zx-primary)" }}
-        />
-        <div
-          className="absolute -bottom-32 -right-32 w-96 h-96 rounded-full opacity-10 blur-3xl"
-          style={{ background: "var(--zx-primary-deep)" }}
-        />
+      {/* Top Meta Line */}
+      <div className="flex items-center justify-between text-[11px] sm:text-xs tracking-widest uppercase opacity-60">
+        <span>Zentrix Protocol</span>
+        <span>MST Testnet · 91562037</span>
       </div>
 
-      {/* Logo mark */}
-      <div className="relative z-10 flex flex-col items-center gap-8">
-        <div className="relative">
-          {/* Outer pulse ring */}
-          <div
-            className="absolute inset-0 rounded-3xl animate-ping"
-            style={{
-              background: "transparent",
-              border: "2px solid var(--zx-primary)",
-              opacity: 0.3,
-              animationDuration: "1.5s",
-            }}
-          />
-          {/* Logo box */}
-          <div
-            className="relative w-24 h-24 rounded-3xl flex items-center justify-center"
-            style={{
-              background:
-                "linear-gradient(135deg, var(--zx-primary-deep), var(--zx-primary))",
-              boxShadow: "0 0 60px rgba(216,64,64,0.5)",
-            }}
-          >
-            <span
-              className="text-white font-black text-4xl tracking-tight"
-              style={{ fontFeatureSettings: '"ss01"' }}
-            >
-              Z
-            </span>
-          </div>
+      {/* Center Minimal Typography */}
+      <div className="space-y-4 max-w-xl">
+        <div className="text-xs font-bold uppercase tracking-widest text-[var(--zx-primary)] flex items-center gap-2">
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--zx-primary)] animate-pulse" />
+          <span>System Boot</span>
         </div>
 
-        {/* Wordmark */}
-        <div className="text-center space-y-1">
-          <h1
-            className="text-4xl font-black tracking-tight"
-            style={{ color: "var(--zx-cream)" }}
-          >
-            Zentrix
-          </h1>
-          <p
-            className="text-xs font-semibold uppercase tracking-widest"
-            style={{ color: "var(--zx-muted)" }}
-          >
-            Decentralised Freelance · MST Blockchain
-          </p>
+        <div className="text-lg sm:text-2xl font-black tracking-tight leading-snug">
+          {statusPhases[phaseIndex]}
         </div>
 
-        {/* Progress bar */}
-        <div className="w-64 space-y-3">
-          <div
-            className="w-full h-1 rounded-full overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.08)" }}
-          >
-            <div
-              className="h-full rounded-full transition-all duration-75"
-              style={{
-                width: `${progress}%`,
-                background:
-                  "linear-gradient(90deg, var(--zx-primary-deep), var(--zx-primary))",
-                boxShadow: "0 0 8px var(--zx-primary)",
-              }}
-            />
-          </div>
-
-          {/* Status text */}
-          <p
-            className="text-center text-xs font-medium"
-            style={{ color: "var(--zx-muted)" }}
-          >
-            {statusText}
-          </p>
-        </div>
-
-        {/* Chain badge */}
+        {/* Minimal Thin Progress Track */}
         <div
-          className="flex items-center gap-2 px-4 py-2 rounded-full text-xs font-semibold"
-          style={{
-            background: "rgba(255,255,255,0.06)",
-            border: "1px solid rgba(255,255,255,0.1)",
-            color: "var(--zx-cream)",
-          }}
+          className="w-48 h-[1px] relative overflow-hidden"
+          style={{ background: "rgba(236, 220, 191, 0.15)" }}
         >
-          <span
-            className="w-2 h-2 rounded-full animate-pulse"
-            style={{ background: "var(--zx-success)" }}
+          <div
+            className="h-full transition-all duration-75"
+            style={{
+              width: `${percent}%`,
+              background: "var(--zx-primary)",
+            }}
           />
-          <span>Chain ID 91562037 · Testnet</span>
         </div>
+      </div>
+
+      {/* Bottom Counter & Index */}
+      <div className="flex items-end justify-between text-xs tracking-wider">
+        <span className="opacity-40 text-[10px] sm:text-xs">
+          MST BUILDATHON 2026 // BENGALURU
+        </span>
+        <span className="text-xl sm:text-3xl font-black font-mono" style={{ color: "var(--zx-cream)" }}>
+          {percent < 10 ? `00${percent}` : percent < 100 ? `0${percent}` : percent}%
+        </span>
       </div>
     </div>
   );

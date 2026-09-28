@@ -197,3 +197,38 @@
   align-items: center;
   gap: 0.3rem;
 }
+
+/* ─── Editorial Marquee & Typography ─────────────────────────────────────── */
+@keyframes marquee-scroll {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee-scroll 32s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
+}
+
+.editorial-heading {
+  letter-spacing: -0.04em;
+  line-height: 0.96;
+}
+
+.editorial-card {
+  background: var(--zx-surface);
+  border: 1px solid var(--zx-border);
+  border-radius: 1.5rem;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.editorial-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--zx-primary);
+  box-shadow: 0 12px 32px -8px rgba(42, 15, 15, 0.08);
+}
+
