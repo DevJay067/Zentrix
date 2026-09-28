@@ -91,18 +91,21 @@ export const AboutPage: React.FC = () => {
   return (
     <div className="px-4 py-6 max-w-6xl mx-auto space-y-6">
 
-      {/* ── Hero bento — wide dark cell ────────────────────────────────── */}
+      {/* ── Hero bento — clean white luxury cell ────────────────────────────────── */}
       <div
-        className="rounded-3xl p-8 sm:p-12 relative overflow-hidden"
-        style={{ background: "var(--zx-ink)" }}
+        className="rounded-3xl p-8 sm:p-12 relative overflow-hidden shadow-sm"
+        style={{
+          background: "linear-gradient(180deg, var(--zx-surface) 0%, var(--zx-surface-alt) 100%)",
+          border: "1px solid var(--zx-border)",
+        }}
       >
-        {/* Decorative blobs */}
+        {/* Subtle decorative glow */}
         <div
-          className="absolute -bottom-16 -right-16 w-72 h-72 rounded-full opacity-10"
+          className="absolute -bottom-16 -right-16 w-72 h-72 rounded-full opacity-15"
           style={{ background: "var(--zx-primary)", filter: "blur(64px)" }}
         />
         <div
-          className="absolute top-0 left-1/2 w-48 h-48 rounded-full opacity-8"
+          className="absolute top-0 left-1/2 w-48 h-48 rounded-full opacity-10"
           style={{ background: "var(--zx-warning)", filter: "blur(56px)" }}
         />
 
@@ -110,19 +113,19 @@ export const AboutPage: React.FC = () => {
           <div
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-6"
             style={{
-              background: "rgba(216,64,64,0.18)",
-              border: "1px solid rgba(216,64,64,0.3)",
-              color: "var(--zx-primary)",
+              background: "rgba(216,64,64,0.08)",
+              border: "1px solid rgba(216,64,64,0.2)",
+              color: "var(--zx-primary-deep)",
             }}
           >
-            <Globe className="w-3 h-3" />
+            <Globe className="w-3 h-3 text-[var(--zx-primary)]" />
             MST Blockchain × NEWRRO Buildathon 2026
           </div>
-          <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-4" style={{ color: "var(--zx-cream)" }}>
+          <h1 className="text-4xl sm:text-5xl font-black leading-tight mb-4 text-[var(--zx-ink)]">
             About{" "}
             <span style={{ color: "var(--zx-primary)" }}>Zentrix</span>
           </h1>
-          <p className="text-sm leading-relaxed" style={{ color: "var(--zx-muted)" }}>
+          <p className="text-sm leading-relaxed text-[var(--zx-muted)]">
             An AI-assisted, escrow-backed freelance marketplace built natively on the MST
             Blockchain — where money, agreements, reputation, and access passes all live on-chain.
             AI advises; humans decide; the contract never has arbitrary custody of your funds.
@@ -131,11 +134,12 @@ export const AboutPage: React.FC = () => {
 
         {/* Pull-quote */}
         <blockquote
-          className="relative z-10 mt-8 p-5 rounded-2xl text-sm font-medium italic leading-relaxed max-w-lg"
+          className="relative z-10 mt-8 p-5 rounded-2xl text-sm font-medium italic leading-relaxed max-w-lg shadow-xs"
           style={{
-            background: "rgba(236,220,191,0.06)",
-            borderLeft: "3px solid var(--zx-primary)",
-            color: "var(--zx-cream)",
+            background: "rgba(0, 0, 0, 0.02)",
+            border: "1px solid var(--zx-border)",
+            borderLeft: "4px solid var(--zx-primary)",
+            color: "var(--zx-ink)",
           }}
         >
           &ldquo;Don&apos;t just build on blockchain — build something that becomes strictly better
@@ -145,39 +149,39 @@ export const AboutPage: React.FC = () => {
 
       {/* ── Architecture — 4-cell asymmetric bento ──────────────────────── */}
       <div>
-        <h2 className="text-xl font-black mb-4" style={{ color: "var(--zx-ink)" }}>
+        <h2 className="text-xl font-black mb-4 text-[var(--zx-ink)]">
           Technical Architecture
         </h2>
         {/* 2 rows × 2 cols, asymmetric: first row [1+3], second row [3+1] */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           {/* Firebase — narrow */}
           <div
-            className="sm:col-span-1 rounded-3xl p-6 flex flex-col gap-4"
+            className="sm:col-span-1 rounded-3xl p-6 flex flex-col gap-4 shadow-xs"
             style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
           >
             <div
               className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: "rgba(216,64,64,0.1)" }}
+              style={{ background: "rgba(216,64,64,0.08)" }}
             >
-              <Database className="w-5 h-5" style={{ color: "var(--zx-primary)" }} />
+              <Database className="w-5 h-5 text-[var(--zx-primary)]" />
             </div>
             <div>
-              <div className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: "var(--zx-primary)" }}>
+              <div className="text-[10px] font-black uppercase tracking-widest mb-0.5 text-[var(--zx-primary-deep)]">
                 {ARCH_CELLS[0].sub}
               </div>
-              <h3 className="font-black text-base" style={{ color: "var(--zx-ink)" }}>
+              <h3 className="font-black text-base text-[var(--zx-ink)]">
                 {ARCH_CELLS[0].label}
               </h3>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: "var(--zx-muted)" }}>
+            <p className="text-xs leading-relaxed text-[var(--zx-muted)]">
               {ARCH_CELLS[0].body}
             </p>
           </div>
 
-          {/* MST Chain — wide dark */}
+          {/* MST Chain — wide cell */}
           <div
-            className="sm:col-span-3 rounded-3xl p-7 flex flex-col gap-4 relative overflow-hidden"
-            style={{ background: "var(--zx-ink)" }}
+            className="sm:col-span-3 rounded-3xl p-7 flex flex-col gap-4 relative overflow-hidden shadow-xs"
+            style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
           >
             <div
               className="absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-10"
@@ -186,26 +190,25 @@ export const AboutPage: React.FC = () => {
             <div className="relative z-10 flex items-start gap-4">
               <div
                 className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                style={{ background: "rgba(216,64,64,0.18)" }}
+                style={{ background: "rgba(216,64,64,0.08)" }}
               >
-                <Cpu className="w-5 h-5" style={{ color: "var(--zx-primary)" }} />
+                <Cpu className="w-5 h-5 text-[var(--zx-primary)]" />
               </div>
               <div>
-                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: "var(--zx-primary)" }}>
+                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5 text-[var(--zx-primary-deep)]">
                   {ARCH_CELLS[1].sub}
                 </div>
-                <h3 className="font-black text-base" style={{ color: "var(--zx-cream)" }}>
+                <h3 className="font-black text-base text-[var(--zx-ink)]">
                   {ARCH_CELLS[1].label}
                 </h3>
               </div>
             </div>
-            <p className="relative z-10 text-xs leading-relaxed" style={{ color: "var(--zx-muted)" }}>
+            <p className="relative z-10 text-xs leading-relaxed text-[var(--zx-muted)]">
               {ARCH_CELLS[1].body}
             </p>
             {/* Chain ID pill */}
             <div
-              className="relative z-10 self-start px-3 py-1.5 rounded-xl text-xs font-mono font-bold"
-              style={{ background: "rgba(236,220,191,0.08)", color: "var(--zx-cream)" }}
+              className="relative z-10 self-start px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200"
             >
               Chain ID: 91562037
             </div>
@@ -213,8 +216,8 @@ export const AboutPage: React.FC = () => {
 
           {/* Sarvam AI — wide */}
           <div
-            className="sm:col-span-3 rounded-3xl p-7 flex flex-col gap-4 relative overflow-hidden"
-            style={{ background: "var(--zx-ink)" }}
+            className="sm:col-span-3 rounded-3xl p-7 flex flex-col gap-4 relative overflow-hidden shadow-xs"
+            style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
           >
             <div
               className="absolute bottom-0 left-0 w-48 h-32 rounded-full opacity-10"
@@ -222,26 +225,24 @@ export const AboutPage: React.FC = () => {
             />
             <div className="relative z-10 flex items-start gap-4">
               <div
-                className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                style={{ background: "rgba(183,121,31,0.2)" }}
+                className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-amber-50"
               >
-                <Bot className="w-5 h-5" style={{ color: "var(--zx-warning)" }} />
+                <Bot className="w-5 h-5 text-amber-600" />
               </div>
               <div>
-                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: "var(--zx-warning)" }}>
+                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5 text-amber-700">
                   {ARCH_CELLS[2].sub}
                 </div>
-                <h3 className="font-black text-base" style={{ color: "var(--zx-cream)" }}>
+                <h3 className="font-black text-base text-[var(--zx-ink)]">
                   {ARCH_CELLS[2].label}
                 </h3>
               </div>
             </div>
-            <p className="relative z-10 text-xs leading-relaxed" style={{ color: "var(--zx-muted)" }}>
+            <p className="relative z-10 text-xs leading-relaxed text-[var(--zx-muted)]">
               {ARCH_CELLS[2].body}
             </p>
             <div
-              className="relative z-10 self-start px-3 py-1.5 rounded-xl text-xs font-mono font-bold"
-              style={{ background: "rgba(183,121,31,0.14)", color: "var(--zx-warning)" }}
+              className="relative z-10 self-start px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200"
             >
               Server-side only · Zero PII
             </div>
@@ -449,33 +450,33 @@ export const AboutPage: React.FC = () => {
 
           {/* Zentrix on MST Box */}
           <div
-            className="p-5 rounded-2xl space-y-3 relative overflow-hidden"
+            className="p-5 rounded-2xl space-y-3 relative overflow-hidden shadow-xs"
             style={{
-              background: "var(--zx-ink)",
-              border: "1.5px solid var(--zx-primary)",
+              background: "var(--zx-surface)",
+              border: "2px solid var(--zx-primary)",
             }}
           >
             <div className="flex items-center justify-between">
-              <span className="text-xs font-black uppercase text-white">Zentrix on MST Blockchain</span>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: "var(--zx-primary)" }}>
+              <span className="text-xs font-black uppercase text-[var(--zx-primary-deep)]">Zentrix on MST Blockchain</span>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded-full text-white" style={{ background: "var(--zx-primary-deep)" }}>
                 Non-Custodial & Autonomous
               </span>
             </div>
-            <ul className="space-y-2 text-xs" style={{ color: "var(--zx-cream)" }}>
+            <ul className="space-y-2 text-xs text-[var(--zx-ink)]">
               <li className="flex items-center gap-2">
-                <span className="font-bold" style={{ color: "var(--zx-success)" }}>✓</span>
+                <span className="font-bold text-[var(--zx-success)]">✓</span>
                 <span><strong>0% Commission:</strong> 100% of value goes directly to talent</span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="font-bold" style={{ color: "var(--zx-success)" }}>✓</span>
+                <span className="font-bold text-[var(--zx-success)]">✓</span>
                 <span><strong>Smart Contract Escrow:</strong> Non-custodial pull payments on MST Testnet</span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="font-bold" style={{ color: "var(--zx-success)" }}>✓</span>
+                <span className="font-bold text-[var(--zx-success)]">✓</span>
                 <span><strong>72h Auto-Release:</strong> Zero payment anxiety if client goes inactive</span>
               </li>
               <li className="flex items-center gap-2">
-                <span className="font-bold" style={{ color: "var(--zx-success)" }}>✓</span>
+                <span className="font-bold text-[var(--zx-success)]">✓</span>
                 <span><strong>Soulbound ERC-721 SBTs:</strong> Cryptographic proof of work that stays with you</span>
               </li>
             </ul>
@@ -483,20 +484,16 @@ export const AboutPage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── Mission + Team — dark cell ──────────────────────────────────── */}
+      {/* ── Mission + Team — clean white luxury cell ──────────────────────────────────── */}
       <div
-        className="rounded-3xl p-8 sm:p-12 relative overflow-hidden"
-        style={{ background: "var(--zx-ink)" }}
+        className="rounded-3xl p-8 sm:p-12 relative overflow-hidden shadow-sm"
+        style={{
+          background: "linear-gradient(180deg, var(--zx-surface) 0%, var(--zx-surface-alt) 100%)",
+          border: "1px solid var(--zx-border)",
+        }}
       >
-        <div
-          className="absolute inset-0 opacity-5"
-          style={{
-            background:
-              "repeating-linear-gradient(45deg, var(--zx-primary) 0px, var(--zx-primary) 1px, transparent 1px, transparent 24px)",
-          }}
-        />
         <div className="relative z-10 max-w-3xl space-y-6">
-          <h2 className="text-2xl font-black" style={{ color: "var(--zx-cream)" }}>
+          <h2 className="text-2xl font-black text-[var(--zx-ink)]">
             Mission &amp; Philosophy
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -516,16 +513,16 @@ export const AboutPage: React.FC = () => {
             ].map(({ title, body }) => (
               <div
                 key={title}
-                className="p-5 rounded-2xl flex flex-col gap-2"
+                className="p-5 rounded-2xl flex flex-col gap-2 shadow-xs"
                 style={{
-                  background: "rgba(236,220,191,0.05)",
-                  border: "1px solid rgba(236,220,191,0.1)",
+                  background: "var(--zx-surface)",
+                  border: "1px solid var(--zx-border)",
                 }}
               >
-                <span className="text-xs font-black" style={{ color: "var(--zx-primary)" }}>
+                <span className="text-xs font-black text-[var(--zx-primary-deep)]">
                   {title}
                 </span>
-                <p className="text-xs leading-relaxed" style={{ color: "var(--zx-muted)" }}>
+                <p className="text-xs leading-relaxed text-[var(--zx-muted)]">
                   {body}
                 </p>
               </div>

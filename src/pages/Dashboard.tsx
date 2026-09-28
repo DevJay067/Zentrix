@@ -220,24 +220,26 @@ export const DashboardPage: React.FC = () => {
       {/* ── Bento metrics ───────────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Withdrawable balance */}
-        <div className="rounded-3xl p-6 space-y-3 relative overflow-hidden"
-          style={{ background: "var(--zx-ink)", border: "1px solid rgba(216,64,64,0.2)" }}>
+        <div className="rounded-3xl p-6 space-y-3 relative overflow-hidden shadow-xs"
+          style={{
+            background: "linear-gradient(135deg, var(--zx-surface) 0%, var(--zx-surface-alt) 100%)",
+            border: "2px solid var(--zx-primary)",
+          }}>
           <div className="absolute -right-6 -top-6 w-24 h-24 rounded-full opacity-10"
-            style={{ background: "var(--zx-primary)" }} />
-          <div className="text-xs font-semibold uppercase tracking-wide"
-            style={{ color: "rgba(236,220,191,0.5)" }}>
+            style={{ background: "var(--zx-primary)", filter: "blur(20px)" }} />
+          <div className="text-xs font-bold uppercase tracking-wide text-[var(--zx-primary-deep)]">
             {currentRole === "client" ? "Locked in Escrow" : "Available to Withdraw"}
           </div>
-          <div className="text-4xl font-black font-mono" style={{ color: "var(--zx-cream)" }}>
+          <div className="text-4xl font-black font-mono text-[var(--zx-ink)]">
             {metrics.loading
-              ? <Loader2 className="w-8 h-8 animate-spin inline" style={{ color: "var(--zx-primary)" }} />
-              : <>{parseFloat(metrics.withdrawable).toFixed(4)} <span className="text-lg opacity-60">tMSTC</span></>
+              ? <Loader2 className="w-8 h-8 animate-spin inline text-[var(--zx-primary)]" />
+              : <>{parseFloat(metrics.withdrawable).toFixed(4)} <span className="text-lg opacity-60 text-[var(--zx-muted)]">tMSTC</span></>
             }
           </div>
           {currentRole === "freelancer" && (
             <button onClick={handleWithdraw} disabled={withdrawing || metrics.loading}
-              className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all"
-              style={{ background: "var(--zx-primary)", color: "var(--zx-cream)" }}>
+              className="inline-flex items-center gap-2 text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm"
+              style={{ background: "var(--zx-primary-deep)", color: "white" }}>
               {withdrawing ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
               {withdrawing ? "Processing..." : "Pull Withdraw"}
             </button>

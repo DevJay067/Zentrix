@@ -61,34 +61,33 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
     <div
       className="fixed inset-0 z-[99999] flex flex-col justify-between p-6 sm:p-12 font-mono select-none"
       style={{
-        background: "var(--zx-ink)",
-        color: "var(--zx-cream)",
+        background: "var(--zx-surface)",
+        color: "var(--zx-ink)",
         opacity: isFading ? 0 : 1,
         transition: "opacity 0.25s cubic-bezier(0.16, 1, 0.3, 1)",
         pointerEvents: isFading ? "none" : "all",
       }}
     >
       {/* Top Meta Line */}
-      <div className="flex items-center justify-between text-[11px] sm:text-xs tracking-widest uppercase opacity-60">
+      <div className="flex items-center justify-between text-[11px] sm:text-xs tracking-widest uppercase text-[var(--zx-muted)]">
         <span>Zentrix Protocol</span>
         <span>MST Testnet · 91562037</span>
       </div>
 
       {/* Center Minimal Typography */}
       <div className="space-y-4 max-w-xl">
-        <div className="text-xs font-bold uppercase tracking-widest text-[var(--zx-primary)] flex items-center gap-2">
+        <div className="text-xs font-bold uppercase tracking-widest text-[var(--zx-primary-deep)] flex items-center gap-2">
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--zx-primary)] animate-pulse" />
           <span>System Boot</span>
         </div>
 
-        <div className="text-lg sm:text-2xl font-black tracking-tight leading-snug">
+        <div className="text-lg sm:text-2xl font-black tracking-tight leading-snug text-[var(--zx-ink)]">
           {statusPhases[phaseIndex]}
         </div>
 
         {/* Minimal Thin Progress Track */}
         <div
-          className="w-48 h-[1px] relative overflow-hidden"
-          style={{ background: "rgba(236, 220, 191, 0.15)" }}
+          className="w-48 h-[2px] rounded-full relative overflow-hidden bg-slate-100 border border-slate-200"
         >
           <div
             className="h-full transition-all duration-75"
@@ -102,10 +101,10 @@ export const SplashScreen: React.FC<SplashScreenProps> = ({ onComplete }) => {
 
       {/* Bottom Counter & Index */}
       <div className="flex items-end justify-between text-xs tracking-wider">
-        <span className="opacity-40 text-[10px] sm:text-xs">
+        <span className="text-[var(--zx-muted)] text-[10px] sm:text-xs">
           MST BUILDATHON 2026 // BENGALURU
         </span>
-        <span className="text-xl sm:text-3xl font-black font-mono" style={{ color: "var(--zx-cream)" }}>
+        <span className="text-xl sm:text-3xl font-black font-mono text-[var(--zx-ink)]">
           {percent < 10 ? `00${percent}` : percent < 100 ? `0${percent}` : percent}%
         </span>
       </div>

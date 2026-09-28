@@ -2,18 +2,22 @@
   /* Core Theme Tokens - Harness §3.7 */
   --zx-primary: #D84040;
   --zx-primary-deep: #A31D1D;
-  --zx-cream: #ECDCBF;
+  --zx-cream: #FFFFFF;
 
-  /* Derived Tokens */
-  --zx-ink: #2A0F0F;
-  --zx-muted: #6B4A4A;
-  --zx-surface: #F7EFDF;
-  --zx-surface-alt: #E8D8BA;
-  --zx-success: #2F7D4F;
-  --zx-warning: #B7791F;
-  --zx-danger: #A31D1D;
-  --zx-border: #DEC8A5;
+  /* Derived Tokens: Pristine White Theme (Shadcn / HeroUI / ReactBits style) */
+  --zx-ink: #0F172A;
+  --zx-muted: #64748B;
+  --zx-surface: #FFFFFF;
+  --zx-surface-alt: #F8FAFC;
+  --zx-surface-card: #FFFFFF;
+  --zx-border: #E2E8F0;
+  --zx-border-subtle: #F1F5F9;
+  --zx-success: #16A34A;
+  --zx-warning: #D97706;
+  --zx-danger: #DC2626;
 
   /* Focus & Shadow */
-  --zx-focus-ring: rgba(163, 29, 29, 0.4);
+  --zx-focus-ring: rgba(216, 64, 64, 0.2);
+  --zx-card-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 1px 2px -1px rgba(0, 0, 0, 0.05);
+  --zx-card-shadow-hover: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
 }

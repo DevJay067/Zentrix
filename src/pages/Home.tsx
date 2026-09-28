@@ -85,19 +85,23 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
-      {/* ── 2. Editorial Hero Section ── */}
+      {/* ── 2. Hero Section (Clean White with Subtle Ambient Glow) ── */}
       <section
         className="rounded-3xl p-8 sm:p-14 relative overflow-hidden space-y-8"
         style={{
-          background: "var(--zx-ink)",
-          color: "var(--zx-cream)",
+          background: "linear-gradient(180deg, var(--zx-surface) 0%, var(--zx-surface-alt) 100%)",
           border: "1px solid var(--zx-border)",
+          boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.04)",
         }}
       >
-        {/* Subtle Ambient Vignette */}
+        {/* Subtle Ambient Radial Highlight */}
         <div
-          className="absolute -top-32 -right-32 w-96 h-96 rounded-full opacity-20 pointer-events-none blur-3xl"
+          className="absolute -top-24 -right-24 w-96 h-96 rounded-full pointer-events-none blur-3xl opacity-20"
           style={{ background: "var(--zx-primary)" }}
+        />
+        <div
+          className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full pointer-events-none blur-3xl opacity-15"
+          style={{ background: "var(--zx-primary-deep)" }}
         />
 
         <div className="relative z-10 max-w-4xl space-y-6">
@@ -106,26 +110,22 @@ export const HomePage: React.FC = () => {
             <span
               className="text-[10px] font-mono font-bold uppercase tracking-widest px-3 py-1 rounded-full"
               style={{
-                background: "rgba(216, 64, 64, 0.2)",
-                color: "var(--zx-primary)",
-                border: "1px solid rgba(216, 64, 64, 0.35)",
+                background: "rgba(216, 64, 64, 0.08)",
+                color: "var(--zx-primary-deep)",
+                border: "1px solid rgba(216, 64, 64, 0.2)",
               }}
             >
               MST Blockchain × NEWRRO Buildathon 2026
             </span>
             <span
-              className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-full"
-              style={{
-                background: "rgba(236, 220, 191, 0.08)",
-                color: "var(--zx-cream)",
-              }}
+              className="text-[10px] font-mono font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-700 border border-slate-200"
             >
               Zero Custody Risk
             </span>
           </div>
 
           {/* High-Impact Editorial Headline */}
-          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black uppercase tracking-tight leading-[0.98]">
+          <h1 className="text-4xl sm:text-6xl md:text-7xl font-black uppercase tracking-tight leading-[0.98] text-[var(--zx-ink)]">
             The Autonomous <br />
             <span style={{ color: "var(--zx-primary)" }}>Milestone Escrow</span> <br />
             Protocol.
@@ -133,8 +133,7 @@ export const HomePage: React.FC = () => {
 
           {/* Subtext */}
           <p
-            className="text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl font-light"
-            style={{ color: "var(--zx-muted)" }}
+            className="text-sm sm:text-base md:text-lg leading-relaxed max-w-2xl text-[var(--zx-muted)] font-normal"
           >
             Where freelance capital is secured in immutable smart contracts, not corporate bank accounts.
             Sarvam AI analyzes requirements; smart contracts guarantee payouts; your reputation is minted permanently to your wallet on MSTScan.
@@ -144,7 +143,7 @@ export const HomePage: React.FC = () => {
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 pt-2">
             <Link
               to="/marketplace"
-              className="btn-primary py-3.5 px-8 text-xs font-bold shadow-lg transition-transform hover:scale-105 flex items-center justify-center gap-2"
+              className="btn-primary py-3.5 px-8 text-xs font-bold shadow-md transition-all hover:scale-105 flex items-center justify-center gap-2"
             >
               <span>Explore Verified Gigs</span>
               <ArrowRight className="w-4 h-4" />
@@ -152,12 +151,7 @@ export const HomePage: React.FC = () => {
 
             <Link
               to="/agent"
-              className="px-6 py-3.5 rounded-xl text-xs font-bold transition-all hover:scale-105 flex items-center justify-center gap-2"
-              style={{
-                background: "rgba(236, 220, 191, 0.1)",
-                color: "var(--zx-cream)",
-                border: "1px solid rgba(236, 220, 191, 0.2)",
-              }}
+              className="btn-secondary py-3.5 px-6 text-xs font-bold transition-all hover:scale-105 flex items-center justify-center gap-2 shadow-sm"
             >
               <Bot className="w-4 h-4 text-[var(--zx-primary)]" />
               <span>Launch Sarvam AI Matchmaker</span>
@@ -168,41 +162,41 @@ export const HomePage: React.FC = () => {
         {/* Live Protocol Telemetry Stats Strip */}
         <div
           className="relative z-10 pt-8 border-t grid grid-cols-2 sm:grid-cols-4 gap-4"
-          style={{ borderColor: "rgba(236, 220, 191, 0.12)" }}
+          style={{ borderColor: "var(--zx-border)" }}
         >
-          <div>
+          <div className="p-3.5 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs">
             <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--zx-muted)]">
               Total Volume Settled
             </div>
-            <div className="text-xl sm:text-2xl font-mono font-black text-[var(--zx-cream)] mt-0.5">
-              {metricCount.volume.toLocaleString()} <span className="text-xs font-normal opacity-60">tMSTC</span>
+            <div className="text-xl sm:text-2xl font-mono font-black text-[var(--zx-ink)] mt-0.5">
+              {metricCount.volume.toLocaleString()} <span className="text-xs font-normal text-[var(--zx-muted)]">tMSTC</span>
             </div>
           </div>
 
-          <div>
+          <div className="p-3.5 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs">
             <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--zx-muted)]">
               Milestones Verified
             </div>
-            <div className="text-xl sm:text-2xl font-mono font-black text-[var(--zx-cream)] mt-0.5">
-              {metricCount.gigs} <span className="text-xs font-normal opacity-60">Contracts</span>
+            <div className="text-xl sm:text-2xl font-mono font-black text-[var(--zx-ink)] mt-0.5">
+              {metricCount.gigs} <span className="text-xs font-normal text-[var(--zx-muted)]">Contracts</span>
             </div>
           </div>
 
-          <div>
+          <div className="p-3.5 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs">
             <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--zx-muted)]">
               Auto-Release Window
             </div>
             <div className="text-xl sm:text-2xl font-mono font-black text-[var(--zx-primary)] mt-0.5">
-              72h <span className="text-xs font-normal opacity-60">Guaranteed</span>
+              72h <span className="text-xs font-normal text-[var(--zx-muted)]">Guaranteed</span>
             </div>
           </div>
 
-          <div>
+          <div className="p-3.5 rounded-2xl bg-white/80 border border-slate-200/80 shadow-xs">
             <div className="text-[10px] font-mono uppercase tracking-wider text-[var(--zx-muted)]">
               Platform Commission
             </div>
             <div className="text-xl sm:text-2xl font-mono font-black text-[var(--zx-success)] mt-0.5">
-              0.00% <span className="text-xs font-normal opacity-60">Zero Rake</span>
+              0.00% <span className="text-xs font-normal text-[var(--zx-muted)]">Zero Rake</span>
             </div>
           </div>
         </div>

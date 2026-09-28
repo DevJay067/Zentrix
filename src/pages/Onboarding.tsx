@@ -708,27 +708,27 @@ export const OnboardingPage: React.FC = () => {
           <div className="space-y-6 text-center animate-in fade-in zoom-in-95 duration-200">
             {/* Discord Bot Card Schematic */}
             <div
-              className="rounded-3xl p-6 sm:p-8 space-y-4 max-w-lg mx-auto text-left relative overflow-hidden"
+              className="rounded-3xl p-6 sm:p-8 space-y-4 max-w-lg mx-auto text-left relative overflow-hidden shadow-sm"
               style={{
-                background: "var(--zx-ink)",
+                background: "var(--zx-surface)",
                 border: "1px solid var(--zx-border)",
               }}
             >
               <div className="flex items-center gap-3">
                 <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-md"
-                  style={{ background: "var(--zx-primary)", color: "var(--zx-cream)" }}
+                  className="w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-sm"
+                  style={{ background: "var(--zx-primary)", color: "white" }}
                 >
                   <ShieldCheck className="w-6 h-6" />
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="font-black text-sm text-white">
+                    <span className="font-black text-sm text-[var(--zx-ink)]">
                       Zentrix Gatekeeper Bot
                     </span>
                     <span
-                      className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full"
-                      style={{ background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }}
+                      className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full text-white"
+                      style={{ background: "var(--zx-primary-deep)" }}
                     >
                       EIP-191 Verified
                     </span>
@@ -741,27 +741,27 @@ export const OnboardingPage: React.FC = () => {
 
               <div
                 className="p-4 rounded-2xl space-y-2"
-                style={{ background: "rgba(255, 255, 255, 0.05)", border: "1px solid rgba(255, 255, 255, 0.1)" }}
+                style={{ background: "var(--zx-surface-alt)", border: "1px solid var(--zx-border)" }}
               >
                 <div className="flex items-center justify-between text-xs">
                   <span style={{ color: "var(--zx-muted)" }}>Ident:</span>
-                  <span className="font-bold text-white">
+                  <span className="font-bold text-[var(--zx-ink)]">
                     {name} (@{handle})
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span style={{ color: "var(--zx-muted)" }}>Role:</span>
-                  <span className="font-bold uppercase" style={{ color: "var(--zx-primary)" }}>
+                  <span className="font-bold uppercase" style={{ color: "var(--zx-primary-deep)" }}>
                     {role}
                   </span>
                 </div>
                 <div className="flex items-center justify-between text-xs">
                   <span style={{ color: "var(--zx-muted)" }}>Bound Skills:</span>
-                  <span className="font-bold text-white">{selectedTags.length} tags</span>
+                  <span className="font-bold text-[var(--zx-ink)]">{selectedTags.length} tags</span>
                 </div>
-                <div className="flex items-center justify-between text-xs pt-1 border-t" style={{ borderColor: "rgba(255, 255, 255, 0.1)" }}>
+                <div className="flex items-center justify-between text-xs pt-1 border-t" style={{ borderColor: "var(--zx-border)" }}>
                   <span style={{ color: "var(--zx-muted)" }}>Wallet:</span>
-                  <span className="font-mono text-xs font-semibold" style={{ color: "var(--zx-cream)" }}>
+                  <span className="font-mono text-xs font-semibold text-[var(--zx-primary-deep)]">
                     {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : "No Wallet Connected"}
                   </span>
                 </div>

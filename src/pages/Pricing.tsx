@@ -237,14 +237,17 @@ export const PricingPage: React.FC = () => {
       className="min-h-screen"
       style={{ background: "var(--zx-surface)" }}
     >
-      {/* ── Hero dark banner ─────────────────────────────────────────────── */}
+      {/* ── Hero clean white banner ─────────────────────────────────────────────── */}
       <div
-        className="rounded-3xl mx-4 mt-4 mb-8 p-8 sm:p-12 relative overflow-hidden"
-        style={{ background: "var(--zx-ink)" }}
+        className="rounded-3xl mx-4 mt-4 mb-8 p-8 sm:p-12 relative overflow-hidden shadow-sm"
+        style={{
+          background: "linear-gradient(180deg, var(--zx-surface) 0%, var(--zx-surface-alt) 100%)",
+          border: "1px solid var(--zx-border)",
+        }}
       >
-        {/* Abstract decorative blobs */}
+        {/* Subtle decorative glow */}
         <div
-          className="absolute -top-12 -right-12 w-56 h-56 rounded-full opacity-10"
+          className="absolute -top-12 -right-12 w-56 h-56 rounded-full opacity-15"
           style={{ background: "var(--zx-primary)", filter: "blur(48px)" }}
         />
         <div
@@ -256,20 +259,20 @@ export const PricingPage: React.FC = () => {
           <div
             className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-5"
             style={{
-              background: "rgba(216,64,64,0.18)",
-              color: "var(--zx-primary)",
-              border: "1px solid rgba(216,64,64,0.3)",
+              background: "rgba(216,64,64,0.08)",
+              color: "var(--zx-primary-deep)",
+              border: "1px solid rgba(216,64,64,0.2)",
             }}
           >
-            <Sparkles className="w-3 h-3" />
+            <Sparkles className="w-3.5 h-3.5 text-[var(--zx-primary)]" />
             <span>Soulbound NFT Access Passes</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black leading-tight mb-4" style={{ color: "var(--zx-cream)" }}>
+          <h1 className="text-3xl sm:text-5xl font-black leading-tight mb-4 text-[var(--zx-ink)]">
             ZentrixPass
             <br />
             <span style={{ color: "var(--zx-primary)" }}>Subscription Tiers</span>
           </h1>
-          <p className="text-sm leading-relaxed" style={{ color: "var(--zx-muted)" }}>
+          <p className="text-sm leading-relaxed text-[var(--zx-muted)]">
             Non-transferable ERC-721 access passes granting daily AI query allowances for the Sarvam
             matchmaking engine. Prices are fetched live from the ZentrixPass smart contract.
           </p>
@@ -278,10 +281,10 @@ export const PricingPage: React.FC = () => {
         {/* Active tier status chip */}
         {isConnected && !chain.loading && (
           <div
-            className="absolute top-6 right-6 sm:top-8 sm:right-8 px-4 py-2 rounded-2xl text-xs font-bold"
+            className="absolute top-6 right-6 sm:top-8 sm:right-8 px-4 py-2 rounded-2xl text-xs font-bold shadow-xs"
             style={{
-              background: chain.userTier > 0 ? "rgba(47,125,79,0.2)" : "rgba(107,74,74,0.3)",
-              border: `1px solid ${chain.userTier > 0 ? "var(--zx-success)" : "var(--zx-muted)"}`,
+              background: chain.userTier > 0 ? "rgba(47,125,79,0.1)" : "var(--zx-surface-alt)",
+              border: `1px solid ${chain.userTier > 0 ? "var(--zx-success)" : "var(--zx-border)"}`,
               color: chain.userTier > 0 ? "var(--zx-success)" : "var(--zx-muted)",
             }}
           >
@@ -465,22 +468,26 @@ export const PricingPage: React.FC = () => {
                   return (
                     <div
                       key={id}
-                      className="rounded-3xl p-7 flex flex-col sm:flex-row gap-6 justify-between relative overflow-hidden"
+                      className="rounded-3xl p-7 flex flex-col sm:flex-row gap-6 justify-between relative overflow-hidden transition-all duration-300"
                       style={{
-                        background: isFeatured ? "var(--zx-ink)" : "var(--zx-surface)",
+                        background: "var(--zx-surface)",
                         border: current
                           ? `2px solid ${accent}`
                           : isFeatured
-                          ? "none"
+                          ? "2px solid var(--zx-primary)"
                           : "1px solid var(--zx-border)",
-                        boxShadow: current ? `0 0 24px ${accent}40` : undefined,
+                        boxShadow: current
+                          ? `0 0 24px ${accent}40`
+                          : isFeatured
+                          ? "0 10px 30px -5px rgba(216, 64, 64, 0.08)"
+                          : "0 2px 8px -2px rgba(0, 0, 0, 0.04)",
                       }}
                     >
-                      {/* Glow blob for active */}
-                      {current && (
+                      {/* Glow blob for active or featured */}
+                      {(current || isFeatured) && (
                         <div
                           className="absolute -top-8 -right-8 w-32 h-32 rounded-full"
-                          style={{ background: accent, filter: "blur(40px)", opacity: 0.15 }}
+                          style={{ background: accent, filter: "blur(40px)", opacity: current ? 0.2 : 0.08 }}
                         />
                       )}
 
@@ -489,7 +496,7 @@ export const PricingPage: React.FC = () => {
                         <div className="flex items-center gap-3">
                           <div
                             className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                            style={{ background: `${accent}22` }}
+                            style={{ background: `${accent}18` }}
                           >
                             <Icon className="w-5 h-5" style={{ color: accent }} />
                           </div>
@@ -509,10 +516,16 @@ export const PricingPage: React.FC = () => {
                                   ✦ Active
                                 </span>
                               )}
+                              {isFeatured && !current && (
+                                <span
+                                  className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-red-50 text-[var(--zx-primary-deep)] border border-red-200"
+                                >
+                                  ★ Popular
+                                </span>
+                              )}
                             </div>
                             <h3
-                              className="text-lg font-black leading-tight"
-                              style={{ color: isFeatured ? "var(--zx-cream)" : "var(--zx-ink)" }}
+                              className="text-lg font-black leading-tight text-[var(--zx-ink)]"
                             >
                               {name}
                             </h3>
