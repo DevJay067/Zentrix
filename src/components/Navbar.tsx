@@ -8,11 +8,12 @@ import {
   Bot,
   BarChart3,
   CreditCard,
-  User,
   LogOut,
   Wallet,
   ShieldCheck,
-  Sparkles,
+  Menu,
+  X,
+  KeyRound,
 } from "lucide-react";
 
 export const Navbar: React.FC = () => {
@@ -23,11 +24,13 @@ export const Navbar: React.FC = () => {
   const [productsOpen, setProductsOpen] = useState(false);
   const [monitorOpen, setMonitorOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   const productsRef = useRef<HTMLDivElement>(null);
   const monitorRef = useRef<HTMLDivElement>(null);
   const profileRef = useRef<HTMLDivElement>(null);
 
+  // Close dropdowns on outside click
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (productsRef.current && !productsRef.current.contains(event.target as Node)) {
@@ -44,101 +47,114 @@ export const Navbar: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Close mobile menu on route change
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [pathname]);
+
   const formatShortAddress = (addr: string | null) => {
     if (!addr) return "";
     return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
   };
 
   const isActive = (path: string) => pathname === path;
+  const isActivePrefix = (prefix: string) => pathname.startsWith(prefix);
+
+  const navLinkClass = (active: boolean) =>
+    `px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+      active
+        ? "text-[var(--zx-primary-deep)] bg-[var(--zx-surface-alt)] font-semibold"
+        : "text-[var(--zx-ink)] hover:text-[var(--zx-primary-deep)] hover:bg-[var(--zx-surface)]"
+    }`;
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[var(--zx-border)] bg-[var(--zx-cream)]/90 backdrop-blur-md">
+    <header
+      style={{
+        background: "rgba(247, 239, 223, 0.72)",
+        backdropFilter: "blur(16px)",
+        WebkitBackdropFilter: "blur(16px)",
+        borderBottom: "1px solid var(--zx-border)",
+      }}
+      className="sticky top-0 z-50 w-full"
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* 1. Logo */}
-        <div className="flex items-center gap-8">
-          <Link to="/" className="flex items-center gap-2 group">
-            <div className="w-10 h-10 rounded-xl bg-[var(--zx-primary-deep)] flex items-center justify-center text-white shadow-md group-hover:scale-105 transition-transform">
-              <Sparkles className="w-5 h-5 text-[var(--zx-cream)]" />
-            </div>
-            <div className="flex flex-col">
-              <span className="font-extrabold text-xl tracking-tight text-[var(--zx-primary-deep)]">
-                Zentrix
+
+        {/* ─── LEFT: Logo + Desktop Nav ─── */}
+        <div className="flex items-center gap-6">
+
+          {/* Logo */}
+          <Link to="/" className="flex items-center gap-2.5 group">
+            {/* Stylized 'Z' brand mark */}
+            <div
+              style={{
+                background: "var(--zx-primary-deep)",
+                borderRadius: "10px",
+              }}
+              className="w-9 h-9 flex items-center justify-center shadow-md group-hover:scale-105 transition-transform"
+            >
+              <span
+                style={{ color: "var(--zx-cream)", fontWeight: 900, fontSize: "1.1rem", lineHeight: 1 }}
+              >
+                Z
               </span>
-              <span className="text-[10px] uppercase tracking-wider font-semibold text-[var(--zx-muted)] -mt-1">
-                MST Escrow & AI
-              </span>
             </div>
+            <span
+              style={{ color: "var(--zx-primary-deep)", fontWeight: 800, fontSize: "1.15rem", letterSpacing: "-0.02em" }}
+            >
+              Zentrix
+            </span>
           </Link>
 
-          {/* Navigation Links */}
-          <nav className="hidden md:flex items-center gap-1">
-            {/* 2. Home */}
-            <Link
-              to="/"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive("/")
-                  ? "text-[var(--zx-primary-deep)] bg-[var(--zx-surface)] font-semibold"
-                  : "text-[var(--zx-ink)] hover:text-[var(--zx-primary-deep)] hover:bg-[var(--zx-surface)]"
-              }`}
-            >
-              Home
-            </Link>
+          {/* Desktop Nav */}
+          <nav className="hidden md:flex items-center gap-0.5">
+            <Link to="/" className={navLinkClass(isActive("/"))}>Home</Link>
+            <Link to="/about" className={navLinkClass(isActive("/about"))}>About</Link>
 
-            {/* 3. About */}
-            <Link
-              to="/about"
-              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                isActive("/about")
-                  ? "text-[var(--zx-primary-deep)] bg-[var(--zx-surface)] font-semibold"
-                  : "text-[var(--zx-ink)] hover:text-[var(--zx-primary-deep)] hover:bg-[var(--zx-surface)]"
-              }`}
+            {/* Products dropdown — hover on desktop */}
+            <div
+              className="relative"
+              ref={productsRef}
+              onMouseEnter={() => { setProductsOpen(true); setMonitorOpen(false); }}
+              onMouseLeave={() => setProductsOpen(false)}
             >
-              About
-            </Link>
-
-            {/* 4. Products (Dropdown: Marketplace, Agents) */}
-            <div className="relative" ref={productsRef}>
               <button
-                onClick={() => {
-                  setProductsOpen(!productsOpen);
-                  setMonitorOpen(false);
-                }}
-                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1 transition-colors ${
-                  pathname.startsWith("/marketplace") || pathname.startsWith("/agent")
-                    ? "text-[var(--zx-primary-deep)] bg-[var(--zx-surface)] font-semibold"
-                    : "text-[var(--zx-ink)] hover:text-[var(--zx-primary-deep)] hover:bg-[var(--zx-surface)]"
-                }`}
+                onClick={() => { setProductsOpen(!productsOpen); setMonitorOpen(false); }}
+                className={navLinkClass(
+                  isActivePrefix("/marketplace") || isActivePrefix("/agent")
+                ) + " flex items-center gap-1"}
               >
                 Products
-                <ChevronDown className={`w-4 h-4 transition-transform ${productsOpen ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${productsOpen ? "rotate-180" : ""}`} />
               </button>
 
               {productsOpen && (
-                <div className="absolute left-0 mt-2 w-56 rounded-xl bg-[var(--zx-surface)] border border-[var(--zx-border)] shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div
+                  style={{ borderRadius: "1rem", background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
+                  className="absolute left-0 top-full mt-1.5 w-56 shadow-2xl py-1.5 z-50"
+                >
                   <Link
                     to="/marketplace"
                     onClick={() => setProductsOpen(false)}
                     className="flex items-start gap-3 px-4 py-2.5 hover:bg-[var(--zx-surface-alt)] transition-colors"
                   >
-                    <div className="p-2 rounded-lg bg-[var(--zx-cream)] text-[var(--zx-primary-deep)] mt-0.5">
+                    <div className="p-1.5 rounded-lg bg-[var(--zx-cream)] text-[var(--zx-primary-deep)] mt-0.5">
                       <Layers className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-[var(--zx-ink)]">Marketplace</div>
-                      <div className="text-xs text-[var(--zx-muted)]">Browse gigs & milestone plans</div>
+                      <div className="text-xs text-[var(--zx-muted)]">Browse gigs &amp; milestone plans</div>
                     </div>
                   </Link>
-
                   <Link
                     to="/agent"
                     onClick={() => setProductsOpen(false)}
                     className="flex items-start gap-3 px-4 py-2.5 hover:bg-[var(--zx-surface-alt)] transition-colors"
                   >
-                    <div className="p-2 rounded-lg bg-[var(--zx-cream)] text-[var(--zx-primary-deep)] mt-0.5">
+                    <div className="p-1.5 rounded-lg bg-[var(--zx-cream)] text-[var(--zx-primary-deep)] mt-0.5">
                       <Bot className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-[var(--zx-ink)]">AI Agents</div>
+                      <div className="text-sm font-semibold text-[var(--zx-ink)]">AI Agent</div>
                       <div className="text-xs text-[var(--zx-muted)]">Sarvam AI intelligent match</div>
                     </div>
                   </Link>
@@ -146,50 +162,52 @@ export const Navbar: React.FC = () => {
               )}
             </div>
 
-            {/* 5. Monitor (Dropdown: Pricing, Dashboard) */}
-            <div className="relative" ref={monitorRef}>
+            {/* Monitor dropdown — hover on desktop */}
+            <div
+              className="relative"
+              ref={monitorRef}
+              onMouseEnter={() => { setMonitorOpen(true); setProductsOpen(false); }}
+              onMouseLeave={() => setMonitorOpen(false)}
+            >
               <button
-                onClick={() => {
-                  setMonitorOpen(!monitorOpen);
-                  setProductsOpen(false);
-                }}
-                className={`px-3 py-2 rounded-md text-sm font-medium flex items-center gap-1 transition-colors ${
-                  pathname.startsWith("/pricing") || pathname.startsWith("/dashboard")
-                    ? "text-[var(--zx-primary-deep)] bg-[var(--zx-surface)] font-semibold"
-                    : "text-[var(--zx-ink)] hover:text-[var(--zx-primary-deep)] hover:bg-[var(--zx-surface)]"
-                }`}
+                onClick={() => { setMonitorOpen(!monitorOpen); setProductsOpen(false); }}
+                className={navLinkClass(
+                  isActivePrefix("/pricing") || isActivePrefix("/dashboard")
+                ) + " flex items-center gap-1"}
               >
                 Monitor
-                <ChevronDown className={`w-4 h-4 transition-transform ${monitorOpen ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${monitorOpen ? "rotate-180" : ""}`} />
               </button>
 
               {monitorOpen && (
-                <div className="absolute left-0 mt-2 w-56 rounded-xl bg-[var(--zx-surface)] border border-[var(--zx-border)] shadow-xl py-2 z-50 animate-in fade-in zoom-in-95 duration-100">
+                <div
+                  style={{ borderRadius: "1rem", background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
+                  className="absolute left-0 top-full mt-1.5 w-56 shadow-2xl py-1.5 z-50"
+                >
                   <Link
                     to="/pricing"
                     onClick={() => setMonitorOpen(false)}
                     className="flex items-start gap-3 px-4 py-2.5 hover:bg-[var(--zx-surface-alt)] transition-colors"
                   >
-                    <div className="p-2 rounded-lg bg-[var(--zx-cream)] text-[var(--zx-primary-deep)] mt-0.5">
+                    <div className="p-1.5 rounded-lg bg-[var(--zx-cream)] text-[var(--zx-primary-deep)] mt-0.5">
                       <CreditCard className="w-4 h-4" />
                     </div>
                     <div>
-                      <div className="text-sm font-semibold text-[var(--zx-ink)]">Pricing & Passes</div>
-                      <div className="text-xs text-[var(--zx-muted)]">Pass NFT tiers & credits</div>
+                      <div className="text-sm font-semibold text-[var(--zx-ink)]">Pricing &amp; Passes</div>
+                      <div className="text-xs text-[var(--zx-muted)]">Pass NFT tiers &amp; credits</div>
                     </div>
                   </Link>
-
                   <Link
                     to="/dashboard"
                     onClick={() => setMonitorOpen(false)}
                     className="flex items-start gap-3 px-4 py-2.5 hover:bg-[var(--zx-surface-alt)] transition-colors"
                   >
-                    <div className="p-2 rounded-lg bg-[var(--zx-cream)] text-[var(--zx-primary-deep)] mt-0.5">
+                    <div className="p-1.5 rounded-lg bg-[var(--zx-cream)] text-[var(--zx-primary-deep)] mt-0.5">
                       <BarChart3 className="w-4 h-4" />
                     </div>
                     <div>
                       <div className="text-sm font-semibold text-[var(--zx-ink)]">Dashboard</div>
-                      <div className="text-xs text-[var(--zx-muted)]">Escrow & milestone tracking</div>
+                      <div className="text-xs text-[var(--zx-muted)]">Escrow &amp; milestone tracking</div>
                     </div>
                   </Link>
                 </div>
@@ -198,115 +216,123 @@ export const Navbar: React.FC = () => {
           </nav>
         </div>
 
-        {/* 6. End of Navbar: Abstracted User / Login Button */}
-        <div className="flex items-center gap-3">
-          {/* Network indicator badge if connected */}
+        {/* ─── RIGHT: Actions ─── */}
+        <div className="flex items-center gap-2">
+          {/* Network badge */}
           {isConnected && (
             <div className="hidden sm:flex items-center">
               {isCorrectNetwork ? (
-                <span className="badge-success text-xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[var(--zx-success)] animate-pulse" />
+                <span className="badge-success text-xs flex items-center gap-1">
+                  <span
+                    className="w-1.5 h-1.5 rounded-full animate-pulse"
+                    style={{ background: "var(--zx-success)" }}
+                  />
                   MST Testnet
                 </span>
               ) : (
-                <button
-                  onClick={switchNetwork}
-                  className="badge-warning text-xs cursor-pointer hover:opacity-80"
-                >
+                <button onClick={switchNetwork} className="badge-warning text-xs cursor-pointer hover:opacity-80">
                   Switch to MST
                 </button>
               )}
             </div>
           )}
 
-          {/* User state */}
+          {/* Auth / Wallet state */}
           {!user ? (
-            /* Not logged in: Show Login Button */
+            /* Not logged in */
             <Link to="/login" className="btn-primary text-sm shadow-sm">
-              <User className="w-4 h-4" />
+              <KeyRound className="w-4 h-4" />
               <span>Login</span>
             </Link>
           ) : !profile?.isOnboarded ? (
-            /* Logged in with Firebase, but needs onboarding */
+            /* Needs onboarding */
             <Link to="/onboarding" className="btn-primary text-sm shadow-sm">
               <ShieldCheck className="w-4 h-4" />
               <span>Complete Onboarding</span>
             </Link>
           ) : !isConnected ? (
-            /* Onboarded, but needs mandatory wallet connection */
-            <button
-              onClick={connectWallet}
-              className="btn-primary text-sm shadow-sm flex items-center gap-2"
-            >
+            /* Needs wallet */
+            <button onClick={connectWallet} className="btn-primary text-sm shadow-sm flex items-center gap-2">
               <Wallet className="w-4 h-4" />
               <span>Connect BridgeKey</span>
             </button>
           ) : (
-            /* Logged in, Onboarded, and Wallet Connected: Abstracted Profile Pill */
+            /* Fully connected — wallet address pill + profile dropdown */
             <div className="relative" ref={profileRef}>
               <button
                 onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2.5 p-1.5 pr-3 rounded-full bg-[var(--zx-surface)] border border-[var(--zx-border)] hover:bg-[var(--zx-surface-alt)] transition-all shadow-sm"
+                style={{
+                  background: "var(--zx-surface)",
+                  border: "1px solid var(--zx-border)",
+                  borderRadius: "9999px",
+                }}
+                className="flex items-center gap-2 pl-2 pr-3 py-1.5 hover:bg-[var(--zx-surface-alt)] transition-all shadow-sm"
               >
-                <div className="w-8 h-8 rounded-full bg-[var(--zx-primary-deep)] text-white flex items-center justify-center font-bold text-xs">
+                {/* Green dot + address pill */}
+                <span
+                  className="w-2 h-2 rounded-full"
+                  style={{ background: "var(--zx-success)", boxShadow: "0 0 0 2px var(--zx-surface)" }}
+                />
+                <span
+                  className="font-mono text-xs font-semibold"
+                  style={{ color: "var(--zx-primary-deep)" }}
+                >
+                  {formatShortAddress(address)}
+                </span>
+                {/* Avatar initials */}
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center font-bold text-[10px]"
+                  style={{ background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }}
+                >
                   {profile?.name ? profile.name.slice(0, 2).toUpperCase() : "ZX"}
                 </div>
-                <div className="text-left">
-                  <div className="text-xs font-bold text-[var(--zx-ink)] leading-tight truncate max-w-[90px]">
-                    {profile?.name || "Account"}
-                  </div>
-                  <div className="text-[10px] font-mono text-[var(--zx-muted)] leading-tight">
-                    {formatShortAddress(address)}
-                  </div>
-                </div>
-                <span className="badge-tier text-[10px] uppercase font-bold py-0.5 px-1.5">
-                  {currentRole || "User"}
-                </span>
-                <ChevronDown className="w-3.5 h-3.5 text-[var(--zx-muted)]" />
+                <ChevronDown className={`w-3.5 h-3.5 text-[var(--zx-muted)] transition-transform ${profileOpen ? "rotate-180" : ""}`} />
               </button>
 
-              {/* Profile Dropdown */}
+              {/* Profile dropdown */}
               {profileOpen && (
-                <div className="absolute right-0 mt-2 w-64 rounded-2xl bg-[var(--zx-surface)] border border-[var(--zx-border)] shadow-2xl p-2 z-50">
-                  <div className="p-3 border-b border-[var(--zx-border)] mb-1">
-                    <p className="text-xs text-[var(--zx-muted)]">Signed in as</p>
+                <div
+                  style={{ borderRadius: "1rem", background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
+                  className="absolute right-0 top-full mt-2 w-64 shadow-2xl p-2 z-50"
+                >
+                  {/* Header */}
+                  <div className="p-3 mb-1" style={{ borderBottom: "1px solid var(--zx-border)" }}>
+                    <p className="text-[11px] text-[var(--zx-muted)]">Signed in as</p>
                     <p className="text-sm font-bold text-[var(--zx-ink)] truncate">{profile?.email || user.email}</p>
-                    <div className="mt-2 flex items-center justify-between text-xs text-[var(--zx-muted)] font-mono bg-[var(--zx-cream)] p-1.5 rounded-lg">
+                    <div
+                      className="mt-2 flex items-center justify-between text-xs font-mono p-1.5 rounded-lg"
+                      style={{ background: "var(--zx-cream)", color: "var(--zx-muted)" }}
+                    >
                       <span>Wallet:</span>
                       <span className="font-semibold text-[var(--zx-primary-deep)]">{formatShortAddress(address)}</span>
                     </div>
                   </div>
 
-                  {/* Role Switcher */}
+                  {/* Role switcher */}
                   <div className="px-3 py-2">
                     <p className="text-[11px] font-semibold text-[var(--zx-muted)] uppercase tracking-wider mb-1.5">
                       Active Role
                     </p>
-                    <div className="grid grid-cols-2 gap-1 p-1 bg-[var(--zx-cream)] rounded-lg">
-                      <button
-                        onClick={() => updateRole("client")}
-                        className={`text-xs py-1 rounded font-medium transition-all ${
-                          currentRole === "client"
-                            ? "bg-[var(--zx-primary-deep)] text-white shadow-xs"
-                            : "text-[var(--zx-ink)] hover:text-[var(--zx-primary-deep)]"
-                        }`}
-                      >
-                        Client
-                      </button>
-                      <button
-                        onClick={() => updateRole("freelancer")}
-                        className={`text-xs py-1 rounded font-medium transition-all ${
-                          currentRole === "freelancer"
-                            ? "bg-[var(--zx-primary-deep)] text-white shadow-xs"
-                            : "text-[var(--zx-ink)] hover:text-[var(--zx-primary-deep)]"
-                        }`}
-                      >
-                        Freelancer
-                      </button>
+                    <div className="grid grid-cols-2 gap-1 p-1 rounded-lg" style={{ background: "var(--zx-cream)" }}>
+                      {(["client", "freelancer"] as const).map((role) => (
+                        <button
+                          key={role}
+                          onClick={() => updateRole(role)}
+                          className={`text-xs py-1.5 rounded font-medium transition-all capitalize ${
+                            currentRole === role
+                              ? "text-white shadow-sm"
+                              : "text-[var(--zx-ink)] hover:text-[var(--zx-primary-deep)]"
+                          }`}
+                          style={currentRole === role ? { background: "var(--zx-primary-deep)" } : {}}
+                        >
+                          {role}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  <div className="pt-1 border-t border-[var(--zx-border)]">
+                  {/* Actions */}
+                  <div className="pt-1" style={{ borderTop: "1px solid var(--zx-border)" }}>
                     <Link
                       to="/dashboard"
                       onClick={() => setProfileOpen(false)}
@@ -315,13 +341,10 @@ export const Navbar: React.FC = () => {
                       <BarChart3 className="w-4 h-4 text-[var(--zx-primary-deep)]" />
                       View Dashboard
                     </Link>
-
                     <button
-                      onClick={() => {
-                        setProfileOpen(false);
-                        logout();
-                      }}
-                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold text-[var(--zx-primary-deep)] rounded-lg hover:bg-[var(--zx-surface-alt)] text-left"
+                      onClick={() => { setProfileOpen(false); logout(); }}
+                      className="w-full flex items-center gap-2.5 px-3 py-2 text-xs font-semibold rounded-lg hover:bg-[var(--zx-surface-alt)] text-left"
+                      style={{ color: "var(--zx-primary-deep)" }}
                     >
                       <LogOut className="w-4 h-4" />
                       Sign Out
@@ -331,8 +354,81 @@ export const Navbar: React.FC = () => {
               )}
             </div>
           )}
+
+          {/* Mobile hamburger */}
+          <button
+            className="md:hidden p-2 rounded-lg hover:bg-[var(--zx-surface-alt)] transition-colors"
+            onClick={() => setMobileOpen(!mobileOpen)}
+            aria-label="Toggle mobile menu"
+          >
+            {mobileOpen
+              ? <X className="w-5 h-5 text-[var(--zx-ink)]" />
+              : <Menu className="w-5 h-5 text-[var(--zx-ink)]" />
+            }
+          </button>
         </div>
       </div>
+
+      {/* ─── Mobile slide-down menu ─── */}
+      {mobileOpen && (
+        <div
+          style={{ borderTop: "1px solid var(--zx-border)", background: "rgba(247, 239, 223, 0.97)" }}
+          className="md:hidden w-full px-4 pb-4 pt-2 space-y-1"
+        >
+          <Link to="/" className={`block ${navLinkClass(isActive("/"))}`}>Home</Link>
+          <Link to="/about" className={`block ${navLinkClass(isActive("/about"))}`}>About</Link>
+
+          {/* Products group */}
+          <div>
+            <button
+              className="w-full text-left flex items-center justify-between px-3 py-2 text-sm font-medium text-[var(--zx-ink)]"
+              onClick={() => setProductsOpen(!productsOpen)}
+            >
+              Products
+              <ChevronDown className={`w-4 h-4 transition-transform ${productsOpen ? "rotate-180" : ""}`} />
+            </button>
+            {productsOpen && (
+              <div className="pl-3 space-y-0.5">
+                <Link to="/marketplace" className={`block ${navLinkClass(isActivePrefix("/marketplace"))}`}>Marketplace</Link>
+                <Link to="/agent" className={`block ${navLinkClass(isActivePrefix("/agent"))}`}>AI Agent</Link>
+              </div>
+            )}
+          </div>
+
+          {/* Monitor group */}
+          <div>
+            <button
+              className="w-full text-left flex items-center justify-between px-3 py-2 text-sm font-medium text-[var(--zx-ink)]"
+              onClick={() => setMonitorOpen(!monitorOpen)}
+            >
+              Monitor
+              <ChevronDown className={`w-4 h-4 transition-transform ${monitorOpen ? "rotate-180" : ""}`} />
+            </button>
+            {monitorOpen && (
+              <div className="pl-3 space-y-0.5">
+                <Link to="/pricing" className={`block ${navLinkClass(isActivePrefix("/pricing"))}`}>Pricing &amp; Passes</Link>
+                <Link to="/dashboard" className={`block ${navLinkClass(isActivePrefix("/dashboard"))}`}>Dashboard</Link>
+              </div>
+            )}
+          </div>
+
+          {/* Network badge (mobile) */}
+          {isConnected && (
+            <div className="pt-1">
+              {isCorrectNetwork ? (
+                <span className="badge-success text-xs flex items-center gap-1 w-fit">
+                  <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--zx-success)" }} />
+                  MST Testnet
+                </span>
+              ) : (
+                <button onClick={switchNetwork} className="badge-warning text-xs w-fit">
+                  Switch to MST
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </header>
   );
 };

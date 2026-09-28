@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState } from "react";
 import { Routes, Route } from "react-router-dom";
 import { Navbar } from "./components/Navbar";
+import { SplashScreen } from "./components/SplashScreen";
 import { HomePage } from "./pages/Home";
 import { AboutPage } from "./pages/About";
 import { MarketplacePage } from "./pages/Marketplace";
@@ -9,9 +10,15 @@ import { PricingPage } from "./pages/Pricing";
 import { DashboardPage } from "./pages/Dashboard";
 import { LoginPage } from "./pages/Login";
 import { OnboardingPage } from "./pages/Onboarding";
-import { ExternalLink, ShieldCheck, Heart } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 export const App: React.FC = () => {
+  const [showSplash, setShowSplash] = useState(true);
+
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   return (
     <div className="min-h-screen flex flex-col bg-[var(--zx-cream)] text-[var(--zx-ink)]">
       <Navbar />

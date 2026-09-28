@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "concurrently --names \"vite,server\" --prefix-colors \"cyan,magenta\" \"vite --port 3000\" \"bun run server/index.ts\"",
     "dev:server": "bun run server/index.ts",
     "build": "vite build",
     "preview": "vite preview",
@@ -24,11 +24,13 @@
     "react-router-dom": "^6.28.0"
   },
   "devDependencies": {
+    "@types/bun": "^1.4.2",
     "@types/node": "^20.16.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.3",
     "autoprefixer": "^10.4.20",
+    "concurrently": "^10.0.5",
     "postcss": "^8.4.47",
     "tailwindcss": "^3.4.14",
     "typescript": "^5.5.4",
