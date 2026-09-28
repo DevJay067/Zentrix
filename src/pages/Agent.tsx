@@ -88,6 +88,7 @@ export const AgentPage: React.FC = () => {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          prompt: text,
           messages: updatedMessages.map(({ role, content }) => ({ role, content })),
           walletAddress: address || "anonymous",
           role: currentRole || "freelancer",

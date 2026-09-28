@@ -20,6 +20,8 @@ export interface UserProfile {
   role: UserRole;
   designation?: string;
   organization?: string;
+  bio?: string;
+  avatar?: string;
   phone?: string;
   walletAddress?: string;
   industryTags?: string[];
@@ -39,6 +41,7 @@ export interface AuthContextType {
   logout: () => Promise<void>;
   updateRole: (role: UserRole) => void;
   saveOnboarding: (data: Partial<UserProfile>, role: UserRole, walletAddress: string) => Promise<void>;
+  updateProfile: (data: Partial<UserProfile>) => Promise<void>;
   bindWallet: (walletAddress: string) => Promise<void>;
 }
 
@@ -173,6 +176,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       role: role,
       designation: data.designation || "",
       organization: data.organization || "",
+      bio: data.bio || "",
+      avatar: data.avatar || "",
       phone: data.phone || "",
       walletAddress: walletAddress.toLowerCase(),
       industryTags: data.industryTags || [],
@@ -195,6 +200,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           name: newProfile.name,
           designation: newProfile.designation,
           organization: newProfile.organization,
+          bio: newProfile.bio,
+          avatar: newProfile.avatar,
           industryTags: newProfile.industryTags,
           expertise: newProfile.expertise,
           walletAddress: newProfile.walletAddress,
@@ -287,6 +294,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
   };
 
+  const updateProfile = async (data: Partial<UserProfile>) => {
+    if (!user) throw new Error("User not logged in");
+    const current = profile || {
+      uid: user.uid,
+      name: user.displayName || "Anonymous User",
+      email: user.email || "",
+      role: "freelancer" as UserRole,
+      isOnboarded: true,
+      isWalletBound: false,
+    };
+    const updated: UserProfile = {
+      ...current,
+      ...data,
+    };
+
+    localStorage.setItem(`zx_user_profile_${user.uid}`, JSON.stringify(updated));
+    setProfile(updated);
+    if (updated.role) {
+      setCurrentRole(updated.role);
+    }
+
+    try {
+      await set(ref(rtdb, `users/${user.uid}`), updated);
+      const roleCollection = updated.role === "client" ? "clients" : "freelancers";
+      await set(ref(rtdb, `${roleCollection}/${user.uid}/public`), {
+        uid: user.uid,
+        name: updated.name,
+        designation: updated.designation,
+        organization: updated.organization,
+        bio: updated.bio,
+        avatar: updated.avatar,
+        industryTags: updated.industryTags,
+        expertise: updated.expertise,
+        walletAddress: updated.walletAddress,
+      });
+    } catch (e) {
+      console.warn("[Auth] RTDB updateProfile warning:", (e as any)?.message);
+    }
+
+    try {
+      const fsPromise = setDoc(doc(db, "users", user.uid), updated, { merge: true });
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Firestore timeout")), 1500)
+      );
+      await Promise.race([fsPromise, timeoutPromise]);
+    } catch (e) {}
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -300,6 +355,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         logout,
         updateRole,
         saveOnboarding,
+        updateProfile,
         bindWallet,
       }}
     >

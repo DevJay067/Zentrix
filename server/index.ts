@@ -156,15 +156,13 @@ const server = Bun.serve({
 - Always provide clear, actionable summaries and explain why each recommendation matches their criteria.
 - Never output personal contact information (no raw emails or phone numbers). Everything is negotiated through Zentrix escrow.`;
 
-        // Sarvam Chat API Request
-        const sarvamPayload = {
-          model: "sarvam-30b",
+        // Sarvam Chat API Request with active sarvam-105b model
+        const sarvamPayload: any = {
+          model: "sarvam-105b",
           messages: [
             { role: "system", content: systemPrompt },
             { role: "user", content: prompt },
           ],
-          tools: AGENT_TOOLS,
-          tool_choice: "auto",
           temperature: 0.3,
         };
 

@@ -10,7 +10,9 @@ import { PricingPage } from "./pages/Pricing";
 import { DashboardPage } from "./pages/Dashboard";
 import { LoginPage } from "./pages/Login";
 import { OnboardingPage } from "./pages/Onboarding";
-import { ExternalLink } from "lucide-react";
+import { ProfilePage } from "./pages/Profile";
+import { DisclosurePage } from "./pages/Disclosure";
+import { Footer } from "./components/Footer";
 
 export const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -33,45 +35,12 @@ export const App: React.FC = () => {
           <Route path="/dashboard" element={<DashboardPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/onboarding" element={<OnboardingPage />} />
+          <Route path="/profile" element={<ProfilePage />} />
+          <Route path="/disclosure" element={<DisclosurePage />} />
         </Routes>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-[var(--zx-border)] bg-[var(--zx-surface)]/80 backdrop-blur-xs py-8">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--zx-muted)]">
-          <div className="flex items-center gap-2">
-            <span className="font-bold text-[var(--zx-ink)]">Zentrix</span>
-            <span>· MST Blockchain Buildathon 2026</span>
-          </div>
-
-          <div className="flex items-center gap-4">
-            <span className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-[var(--zx-success)] animate-pulse" />
-              <span>Chain ID 91562037</span>
-            </span>
-            <span>·</span>
-            <a
-              href="https://testnet.mstscan.com"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-[var(--zx-primary-deep)] transition-colors flex items-center gap-1"
-            >
-              <span>MSTScan</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-            <span>·</span>
-            <a
-              href="https://bridgekey.io"
-              target="_blank"
-              rel="noreferrer"
-              className="hover:text-[var(--zx-primary-deep)] transition-colors flex items-center gap-1"
-            >
-              <span>BridgeKey</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 };

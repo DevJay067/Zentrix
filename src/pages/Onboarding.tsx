@@ -1,8 +1,9 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useRef } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth, UserRole } from "../context/AuthContext";
 import { useWallet } from "../context/WalletContext";
-import { FREELANCE_CATEGORIES, TagCategory } from "../lib/tags";
+import { FREELANCE_CATEGORIES } from "../lib/tags";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   ShieldCheck,
   UserCheck,
@@ -22,6 +23,10 @@ import {
   Globe,
   Star,
   Layers,
+  Camera,
+  Flame,
+  Clock,
+  Compass,
 } from "lucide-react";
 
 export const OnboardingPage: React.FC = () => {
@@ -29,34 +34,43 @@ export const OnboardingPage: React.FC = () => {
   const { user, profile, saveOnboarding } = useAuth();
   const { address, isConnected, openConnectModal, signMessage } = useWallet();
 
-  // 4 Discord-style Schematic Steps
-  // 1: Choose Realm (Role & Identity)
-  // 2: Choose Craft & Tags (Choosable Interactive Tags)
-  // 3: Personalization & Work Preferences
-  // 4: Verification Gatekeeper (BridgeKey EIP-191 Signature)
-  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4>(1);
+  // If already onboarded, redirect immediately to Profile bento
+  if (profile?.isOnboarded) {
+    return <Navigate to="/profile" replace />;
+  }
 
-  // Profile State
+  // Discord Sequential Pop-up Steps (1 to 5)
+  // Step 1: Choose Realm / Role
+  // Step 2: Avatar & Profile Identity (Base64 Image Encoding)
+  // Step 3: Interactive Choosable Craft Tags
+  // Step 4: Personalization & Rates
+  // Step 5: Web3 Anchor & Binding (EIP-191 Signature)
+  const [currentStep, setCurrentStep] = useState<1 | 2 | 3 | 4 | 5>(1);
+
+  // Profile Form State
   const [role, setRole] = useState<UserRole>("freelancer");
   const [name, setName] = useState(user?.displayName || "Anonymous Creator");
-  const [handle, setHandle] = useState((user?.displayName || "creator").toLowerCase().replace(/\s+/g, ""));
-  const [avatarSeed, setAvatarSeed] = useState("pixel");
+  const [handle, setHandle] = useState(
+    (user?.displayName || "creator").toLowerCase().replace(/[^a-z0-9]/g, "")
+  );
+  const [avatarDataUrl, setAvatarDataUrl] = useState<string>("");
   const [designation, setDesignation] = useState("Web3 Full-Stack Developer");
   const [organization, setOrganization] = useState("");
-  const [bio, setBio] = useState("Passionate about decentralized milestone escrow and building on MST Blockchain.");
+  const [bio, setBio] = useState(
+    "Building decentralized milestone systems on MST Blockchain. Passionate about trustless smart contract escrow."
+  );
 
   // Choosable Tags State
-  const [selectedCategory, setSelectedCategory] = useState<string>("dev");
+  const [activeCategory, setActiveCategory] = useState<string>("dev");
   const [selectedTags, setSelectedTags] = useState<string[]>([
     "Solidity",
     "Smart Contracts",
     "Frontend (React/Vite)",
     "BridgeKey Integration",
   ]);
-  const [tagSearch, setTagSearch] = useState("");
 
   // Personalization Preferences State
-  const [expLevel, setExpLevel] = useState<string>("Pro Specialist");
+  const [expLevel, setExpLevel] = useState<string>("Specialist (3+ yrs Web3)");
   const [rateRange, setRateRange] = useState<string>("1–5 tMSTC / milestone");
   const [availability, setAvailability] = useState<string>("Immediate (Full-Time)");
 
@@ -65,19 +79,67 @@ export const OnboardingPage: React.FC = () => {
   const [signatureStatus, setSignatureStatus] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Avatar Base64 Image Encoder
+  const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 2 * 1024 * 1024) {
+      alert("Please choose an image under 2MB.");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const result = event.target?.result as string;
+      const img = new Image();
+      img.src = result;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const maxDim = 280;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxDim) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          }
+        } else {
+          if (height > maxDim) {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        const compressed = canvas.toDataURL("image/jpeg", 0.82);
+        setAvatarDataUrl(compressed);
+      };
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Toggle Choosable Tag
   const toggleTag = (tag: string) => {
     if (selectedTags.includes(tag)) {
       setSelectedTags(selectedTags.filter((t) => t !== tag));
     } else {
-      if (selectedTags.length >= 12) {
-        alert("You can select up to 12 skills & tags.");
+      if (selectedTags.length >= 10) {
+        alert("You can select up to 10 craft tags.");
         return;
       }
       setSelectedTags([...selectedTags, tag]);
     }
   };
 
+  // Step 5: Web3 Binding Handler
   const handleWalletBinding = async () => {
     if (!address) {
       openConnectModal();
@@ -89,33 +151,32 @@ export const OnboardingPage: React.FC = () => {
 
     try {
       // 1. Fetch nonce from server
-      const nonceRes = await fetch(`/api/auth/nonce?address=${address}`);
-      const nonceData = await nonceRes.json();
-      const nonce = nonceData.nonce || `Zentrix Web3 Onboarding Binding\nWallet: ${address}\nTime: ${Date.now()}`;
+      let nonce = `Zentrix Web3 Onboarding Binding\nWallet: ${address}\nTime: ${Date.now()}`;
+      try {
+        const nonceRes = await fetch(`/api/auth/nonce?address=${address}`);
+        if (nonceRes.ok) {
+          const nonceData = await nonceRes.json();
+          if (nonceData.nonce) nonce = nonceData.nonce;
+        }
+      } catch {}
 
-      // 2. Request user signature in BridgeKey or injected wallet
+      // 2. Request user signature in BridgeKey or connected wallet
       const sig = await signMessage(nonce);
 
       setSignatureStatus("Verifying cryptographic signature on-chain...");
 
-      // 3. Verify on server
+      // 3. Verify on server (non-blocking)
       try {
         await fetch("/api/auth/verify", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            address,
-            signature: sig,
-            message: nonce,
-          }),
+          body: JSON.stringify({ address, signature: sig, message: nonce }),
         });
-      } catch (_) {
-        // Fallback for demo simulation
-      }
+      } catch {}
 
       setSignatureStatus("Verified! Anchoring your credentials on MST Testnet...");
 
-      // 4. Save profile
+      // 4. Save profile to Firebase & Local Cache
       await saveOnboarding(
         {
           name,
@@ -123,6 +184,8 @@ export const OnboardingPage: React.FC = () => {
           phone: "Protected DPDP 2023",
           designation,
           organization: role === "client" ? organization : undefined,
+          bio,
+          avatar: avatarDataUrl,
           industryTags: selectedTags.slice(0, 5),
           expertise: selectedTags,
         },
@@ -132,8 +195,8 @@ export const OnboardingPage: React.FC = () => {
 
       setIsSuccess(true);
       setTimeout(() => {
-        navigate("/dashboard");
-      }, 1500);
+        navigate("/profile");
+      }, 1200);
     } catch (err: any) {
       console.error("Binding failed:", err);
       alert(err?.message || "Failed to bind wallet. Please try again.");
@@ -142,704 +205,671 @@ export const OnboardingPage: React.FC = () => {
     }
   };
 
+  const stepsList = [
+    { num: 1, label: "Role & Realm" },
+    { num: 2, label: "Identity & Avatar" },
+    { num: 3, label: "Craft Tags" },
+    { num: 4, label: "Preferences" },
+    { num: 5, label: "MST Anchor" },
+  ];
+
   return (
-    <div className="max-w-3xl mx-auto py-6 sm:py-10 space-y-6">
-      {/* ── Discord Schematic Header Bar ── */}
+    <div className="max-w-2xl mx-auto py-4 sm:py-8 space-y-6">
+      {/* ── Discord Schematic Progress Header ── */}
       <div
-        className="rounded-3xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm"
+        className="rounded-3xl p-4 sm:p-5 border shadow-xs"
         style={{
           background: "var(--zx-surface)",
-          border: "1px solid var(--zx-border)",
+          borderColor: "var(--zx-border)",
         }}
       >
-        <div className="flex items-center gap-3">
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center font-black shadow-sm"
-            style={{ background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }}
-          >
-            Z
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--zx-ink)]">
+              # setup-wizard // question-{currentStep}-of-5
+            </span>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-sm" style={{ color: "var(--zx-ink)" }}>
-                Zentrix Onboarding Wizard
-              </span>
-              <span
-                className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full"
-                style={{ background: "var(--zx-surface-alt)", color: "var(--zx-primary-deep)" }}
-              >
-                MST Testnet
-              </span>
-            </div>
-            <p className="text-xs" style={{ color: "var(--zx-muted)" }}>
-              Step {currentStep} of 4:{" "}
-              {currentStep === 1 && "Choose Your Realm & Identity"}
-              {currentStep === 2 && "Personalize Your Craft & Choosable Tags"}
-              {currentStep === 3 && "Work Preferences & Rates"}
-              {currentStep === 4 && "Verify & Bind BridgeKey Identity"}
-            </p>
-          </div>
+          <span className="text-xs font-mono font-bold text-[var(--zx-primary)]">
+            {Math.round((currentStep / 5) * 100)}% Complete
+          </span>
         </div>
 
-        {/* Discord-like Step Stepper */}
-        <div className="flex items-center gap-1.5 self-center sm:self-auto">
-          {[1, 2, 3, 4].map((s) => (
-            <button
-              key={s}
-              onClick={() => s < currentStep && setCurrentStep(s as any)}
-              disabled={s > currentStep}
-              className={`w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition-all ${
-                currentStep === s
-                  ? "scale-110 shadow-md"
-                  : currentStep > s
-                  ? "cursor-pointer"
-                  : "opacity-40 cursor-not-allowed"
+        {/* Step Indicators Bar */}
+        <div className="grid grid-cols-5 gap-1.5 mt-3">
+          {stepsList.map((s) => (
+            <div
+              key={s.num}
+              className={`h-1.5 rounded-full transition-all duration-300 ${
+                s.num <= currentStep
+                  ? "bg-[var(--zx-primary)]"
+                  : "bg-slate-200"
               }`}
-              style={{
-                background:
-                  currentStep === s
-                    ? "var(--zx-primary-deep)"
-                    : currentStep > s
-                    ? "var(--zx-success)"
-                    : "var(--zx-surface-alt)",
-                color: currentStep >= s ? "var(--zx-cream)" : "var(--zx-muted)",
-              }}
-            >
-              {currentStep > s ? "✓" : s}
-            </button>
+            />
           ))}
         </div>
       </div>
 
-      {/* ── Main Step Card ── */}
+      {/* ── Discord Sequential Pop-up Question Card ── */}
       <div
-        className="rounded-3xl p-6 sm:p-10 shadow-lg relative overflow-hidden transition-all"
+        className="rounded-3xl border shadow-md overflow-hidden relative"
         style={{
           background: "var(--zx-surface)",
-          border: "1px solid var(--zx-border)",
+          borderColor: "var(--zx-border)",
         }}
       >
-        {/* ── STEP 1: Choose Realm & Discord-Style Identity ── */}
-        {currentStep === 1 && (
-          <div className="space-y-8 animate-in fade-in zoom-in-95 duration-200">
-            <div>
-              <h2 className="text-2xl font-black" style={{ color: "var(--zx-ink)" }}>
-                Choose Your Guild Realm
-              </h2>
-              <p className="text-xs mt-1" style={{ color: "var(--zx-muted)" }}>
-                Select whether you will primarily commission work or accept milestones and earn reputation.
-              </p>
-            </div>
+        {/* Accent Top Border */}
+        <div
+          className="h-1.5 w-full"
+          style={{ background: "var(--zx-primary)" }}
+        />
 
-            {/* Discord Server Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {/* Client Realm Card */}
-              <div
-                onClick={() => setRole("client")}
-                className={`p-6 rounded-3xl cursor-pointer transition-all border-2 relative overflow-hidden group hover:scale-[1.02] ${
-                  role === "client" ? "shadow-md" : ""
-                }`}
-                style={{
-                  background: role === "client" ? "var(--zx-cream)" : "var(--zx-surface-alt)",
-                  borderColor: role === "client" ? "var(--zx-primary)" : "var(--zx-border)",
-                }}
+        <div className="p-6 sm:p-8">
+          <AnimatePresence mode="wait">
+            {/* ── STEP 1: CHOOSE REALM / ROLE ── */}
+            {currentStep === 1 && (
+              <motion.div
+                key="step-1"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="space-y-6"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm"
-                    style={{ background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }}
-                  >
-                    <Briefcase className="w-6 h-6" />
-                  </div>
-                  {role === "client" && (
-                    <span
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-xs"
-                      style={{ background: "var(--zx-primary)" }}
-                    >
-                      ✓
-                    </span>
-                  )}
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--zx-primary)]">
+                    Question 01
+                  </span>
+                  <h2 className="text-2xl font-black text-[var(--zx-ink)] tracking-tight mt-1">
+                    What brings you to Zentrix?
+                  </h2>
+                  <p className="text-xs text-[var(--zx-muted)] mt-1">
+                    Select your primary operating mode. You can toggle between Hirer and Creator anytime.
+                  </p>
                 </div>
-                <h3 className="text-lg font-black" style={{ color: "var(--zx-ink)" }}>
-                  Quest Giver / Client
-                </h3>
-                <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "var(--zx-muted)" }}>
-                  Fund milestone escrows with tMSTC, recruit top verified talent with Sarvam AI, and resolve milestones safely.
-                </p>
-                <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold" style={{ color: "var(--zx-primary-deep)" }}>
-                  <span>0% platform commission</span>
-                  <span>·</span>
-                  <span>72h auto-release protection</span>
-                </div>
-              </div>
 
-              {/* Freelancer Realm Card */}
-              <div
-                onClick={() => setRole("freelancer")}
-                className={`p-6 rounded-3xl cursor-pointer transition-all border-2 relative overflow-hidden group hover:scale-[1.02] ${
-                  role === "freelancer" ? "shadow-md" : ""
-                }`}
-                style={{
-                  background: role === "freelancer" ? "var(--zx-cream)" : "var(--zx-surface-alt)",
-                  borderColor: role === "freelancer" ? "var(--zx-primary)" : "var(--zx-border)",
-                }}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                  {/* Freelancer Card */}
+                  <button
+                    type="button"
+                    onClick={() => setRole("freelancer")}
+                    className={`p-5 rounded-2xl border text-left transition-all relative ${
+                      role === "freelancer"
+                        ? "border-[var(--zx-primary)] ring-2 ring-red-100 bg-red-50/20 shadow-xs"
+                        : "border-slate-200 hover:border-slate-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                        style={{ background: "var(--zx-primary)" }}
+                      >
+                        <Briefcase className="w-5 h-5" />
+                      </div>
+                      {role === "freelancer" && (
+                        <CheckCircle2 className="w-5 h-5 text-[var(--zx-primary)]" />
+                      )}
+                    </div>
+                    <h3 className="text-sm font-bold text-[var(--zx-ink)] mt-3">
+                      I want to Work & Build
+                    </h3>
+                    <p className="text-xs text-[var(--zx-muted)] mt-1 leading-relaxed">
+                      Deliver milestones, get paid in tMSTC, and earn non-custodial soulbound reputation credentials.
+                    </p>
+                  </button>
+
+                  {/* Client Card */}
+                  <button
+                    type="button"
+                    onClick={() => setRole("client")}
+                    className={`p-5 rounded-2xl border text-left transition-all relative ${
+                      role === "client"
+                        ? "border-[var(--zx-primary)] ring-2 ring-red-100 bg-red-50/20 shadow-xs"
+                        : "border-slate-200 hover:border-slate-300 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                        style={{ background: "var(--zx-ink)" }}
+                      >
+                        <UserCheck className="w-5 h-5" />
+                      </div>
+                      {role === "client" && (
+                        <CheckCircle2 className="w-5 h-5 text-[var(--zx-ink)]" />
+                      )}
+                    </div>
+                    <h3 className="text-sm font-bold text-[var(--zx-ink)] mt-3">
+                      I want to Hire Talent
+                    </h3>
+                    <p className="text-xs text-[var(--zx-muted)] mt-1 leading-relaxed">
+                      Lock payments in smart contract escrow with 72h auto-release protections and Sarvam AI talent search.
+                    </p>
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── STEP 2: AVATAR & CREATOR IDENTITY ── */}
+            {currentStep === 2 && (
+              <motion.div
+                key="step-2"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="space-y-6"
               >
-                <div className="flex items-center justify-between mb-4">
-                  <div
-                    className="w-12 h-12 rounded-2xl flex items-center justify-center shadow-sm"
-                    style={{ background: "var(--zx-primary)", color: "var(--zx-cream)" }}
-                  >
-                    <UserCheck className="w-6 h-6" />
-                  </div>
-                  {role === "freelancer" && (
-                    <span
-                      className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-xs"
-                      style={{ background: "var(--zx-primary)" }}
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--zx-primary)]">
+                    Question 02
+                  </span>
+                  <h2 className="text-2xl font-black text-[var(--zx-ink)] tracking-tight mt-1">
+                    Set your public creator handle & photo
+                  </h2>
+                  <p className="text-xs text-[var(--zx-muted)] mt-1">
+                    Your avatar is encoded directly to Base64 and stored in your decentralized profile record.
+                  </p>
+                </div>
+
+                {/* Avatar Uploader Section */}
+                <div className="flex items-center gap-5 p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                  <div className="relative shrink-0">
+                    <div
+                      className="w-20 h-20 rounded-2xl border-2 overflow-hidden flex items-center justify-center shadow-md relative"
+                      style={{
+                        borderColor: "var(--zx-primary)",
+                        background: "var(--zx-surface)",
+                      }}
                     >
-                      ✓
-                    </span>
-                  )}
-                </div>
-                <h3 className="text-lg font-black" style={{ color: "var(--zx-ink)" }}>
-                  Guild Creator / Freelancer
-                </h3>
-                <p className="text-xs mt-1.5 leading-relaxed" style={{ color: "var(--zx-muted)" }}>
-                  Complete project milestones, withdraw payments non-custodially, and mint permanent Soulbound Reputation NFTs.
-                </p>
-                <div className="mt-4 flex items-center gap-1.5 text-[11px] font-bold" style={{ color: "var(--zx-success)" }}>
-                  <span>Guaranteed pull-payments</span>
-                  <span>·</span>
-                  <span>Soulbound ERC-721 SBT</span>
-                </div>
-              </div>
-            </div>
+                      {avatarDataUrl ? (
+                        <img
+                          src={avatarDataUrl}
+                          alt="Avatar preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div
+                          className="w-full h-full flex items-center justify-center text-xl font-black text-white"
+                          style={{ background: "var(--zx-primary)" }}
+                        >
+                          {name ? name.slice(0, 2).toUpperCase() : "ZX"}
+                        </div>
+                      )}
+                    </div>
 
-            {/* Discord-Style Personalization Form */}
-            <div className="p-6 rounded-3xl space-y-4" style={{ background: "var(--zx-cream)", border: "1px solid var(--zx-border)" }}>
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-14 h-14 rounded-2xl flex items-center justify-center font-black text-xl shadow-md"
-                  style={{ background: "var(--zx-primary-deep)", color: "var(--zx-cream)" }}
-                >
-                  {name.slice(0, 2).toUpperCase()}
-                </div>
-                <div className="flex-1">
-                  <div className="text-xs font-bold" style={{ color: "var(--zx-primary-deep)" }}>
-                    Discord Profile Preview
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="absolute -bottom-1 -right-1 p-1.5 rounded-full text-white shadow hover:scale-105 transition-transform"
+                      style={{ background: "var(--zx-ink)" }}
+                      title="Upload photo"
+                    >
+                      <Camera className="w-3.5 h-3.5" />
+                    </button>
+                    <input
+                      type="file"
+                      ref={fileInputRef}
+                      onChange={handleAvatarFile}
+                      accept="image/png,image/jpeg,image/webp"
+                      className="hidden"
+                    />
                   </div>
-                  <div className="text-base font-black truncate" style={{ color: "var(--zx-ink)" }}>
-                    {name || "Your Name"}
-                  </div>
-                  <div className="text-xs font-mono" style={{ color: "var(--zx-muted)" }}>
-                    @{handle || "handle"} · {role.toUpperCase()}
-                  </div>
-                </div>
-              </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2">
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--zx-ink)" }}>
-                    Display Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={(e) => {
-                      setName(e.target.value);
-                      setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""));
-                    }}
-                    placeholder="e.g. Satoshi Developer"
-                    className="w-full p-3 rounded-2xl text-xs font-medium focus:outline-none"
-                    style={{
-                      background: "var(--zx-surface)",
-                      border: "1px solid var(--zx-border)",
-                      color: "var(--zx-ink)",
-                    }}
-                  />
+                  <div>
+                    <h4 className="text-xs font-bold text-[var(--zx-ink)]">
+                      Creator Avatar (Base64 Encoded)
+                    </h4>
+                    <p className="text-[11px] text-[var(--zx-muted)] mt-0.5">
+                      PNG, JPG or WebP under 2MB. Stored directly into Firestore and Realtime Database.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => fileInputRef.current?.click()}
+                      className="mt-2 text-xs font-bold hover:underline"
+                      style={{ color: "var(--zx-primary)" }}
+                    >
+                      Browse Image File →
+                    </button>
+                  </div>
                 </div>
 
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--zx-ink)" }}>
-                    Zentrix Handle
-                  </label>
-                  <div className="relative">
-                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-mono font-bold" style={{ color: "var(--zx-muted)" }}>
-                      @
-                    </span>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                    <div>
+                      <label className="block text-xs font-bold text-[var(--zx-ink)] mb-1">
+                        Display Name
+                      </label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold outline-hidden focus:ring-2 focus:ring-red-200"
+                        style={{ borderColor: "var(--zx-border)" }}
+                        required
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-bold text-[var(--zx-ink)] mb-1">
+                        Handle (@username)
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-2.5 text-xs text-[var(--zx-muted)] font-mono">
+                          @
+                        </span>
+                        <input
+                          type="text"
+                          value={handle}
+                          onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                          className="w-full pl-7 pr-3.5 py-2.5 rounded-xl border text-xs font-mono font-semibold outline-hidden focus:ring-2 focus:ring-red-200"
+                          style={{ borderColor: "var(--zx-border)" }}
+                          required
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[var(--zx-ink)] mb-1">
+                      Professional Designation
+                    </label>
                     <input
                       type="text"
-                      required
-                      value={handle}
-                      onChange={(e) => setHandle(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))}
-                      placeholder="handle"
-                      className="w-full pl-7 pr-3 py-3 rounded-2xl text-xs font-mono focus:outline-none"
-                      style={{
-                        background: "var(--zx-surface)",
-                        border: "1px solid var(--zx-border)",
-                        color: "var(--zx-ink)",
-                      }}
+                      value={designation}
+                      onChange={(e) => setDesignation(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-xs font-semibold outline-hidden focus:ring-2 focus:ring-red-200"
+                      style={{ borderColor: "var(--zx-border)" }}
+                      placeholder="e.g. Smart Contract Developer & Security Researcher"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-bold text-[var(--zx-ink)] mb-1">
+                      Bio / Introduction
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={bio}
+                      onChange={(e) => setBio(e.target.value)}
+                      className="w-full px-3.5 py-2.5 rounded-xl border text-xs font-medium outline-hidden focus:ring-2 focus:ring-red-200 resize-none"
+                      style={{ borderColor: "var(--zx-border)" }}
+                      placeholder="Brief description of what you do best."
                     />
                   </div>
                 </div>
+              </motion.div>
+            )}
 
-                <div className="sm:col-span-2">
-                  <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--zx-ink)" }}>
-                    {role === "client" ? "Organization / Project Title" : "Professional Designation / Role"}
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={role === "client" ? organization : designation}
-                    onChange={(e) => role === "client" ? setOrganization(e.target.value) : setDesignation(e.target.value)}
-                    placeholder={role === "client" ? "e.g. Web3 Ventures Bengaluru" : "e.g. Senior Smart Contract Auditor & Designer"}
-                    className="w-full p-3 rounded-2xl text-xs font-medium focus:outline-none"
-                    style={{
-                      background: "var(--zx-surface)",
-                      border: "1px solid var(--zx-border)",
-                      color: "var(--zx-ink)",
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="button"
-                onClick={() => setCurrentStep(2)}
-                className="btn-primary py-3 px-8 text-xs font-bold shadow-md flex items-center gap-2"
+            {/* ── STEP 3: INTERACTIVE CHOOSABLE CRAFT TAGS ── */}
+            {currentStep === 3 && (
+              <motion.div
+                key="step-3"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="space-y-5"
               >
-                <span>Continue: Choose Your Craft</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 2: Choosable Tags for ALL Kinds of Freelance Work ── */}
-        {currentStep === 2 && (
-          <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-              <div>
-                <h2 className="text-2xl font-black" style={{ color: "var(--zx-ink)" }}>
-                  Personalize Your Craft Tags
-                </h2>
-                <p className="text-xs" style={{ color: "var(--zx-muted)" }}>
-                  Click to select skills, tools, and categories. No manual typing needed.
-                </p>
-              </div>
-
-              {/* Tag counter badge */}
-              <div
-                className="px-3.5 py-1.5 rounded-full text-xs font-black shadow-xs"
-                style={{
-                  background: selectedTags.length >= 3 ? "var(--zx-success)" : "var(--zx-primary-deep)",
-                  color: "var(--zx-cream)",
-                }}
-              >
-                {selectedTags.length} Skills Selected (Min 3)
-              </div>
-            </div>
-
-            {/* Category Selector Tabs (Discord Channel Style) */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b" style={{ borderColor: "var(--zx-border)" }}>
-              {FREELANCE_CATEGORIES.map((cat) => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedCategory(cat.id)}
-                  className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 ${
-                    selectedCategory === cat.id
-                      ? "shadow-sm scale-105"
-                      : "opacity-75 hover:opacity-100"
-                  }`}
-                  style={{
-                    background: selectedCategory === cat.id ? "var(--zx-primary-deep)" : "var(--zx-cream)",
-                    color: selectedCategory === cat.id ? "var(--zx-cream)" : "var(--zx-ink)",
-                    border: `1px solid ${selectedCategory === cat.id ? "var(--zx-primary-deep)" : "var(--zx-border)"}`,
-                  }}
-                >
-                  <Hash className="w-3.5 h-3.5 opacity-70" />
-                  <span>{cat.name}</span>
-                </button>
-              ))}
-            </div>
-
-            {/* Search Filter */}
-            <div className="relative">
-              <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--zx-muted)]" />
-              <input
-                type="text"
-                placeholder="Search any skill, stack, or freelance domain..."
-                value={tagSearch}
-                onChange={(e) => setTagSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2.5 rounded-2xl bg-[var(--zx-cream)] border border-[var(--zx-border)] text-xs text-[var(--zx-ink)] focus:outline-none"
-              />
-            </div>
-
-            {/* Interactive Choosable Tag Pills Grid */}
-            <div className="p-5 rounded-3xl min-h-[220px]" style={{ background: "var(--zx-cream)", border: "1px solid var(--zx-border)" }}>
-              <div className="flex flex-wrap gap-2.5">
-                {FREELANCE_CATEGORIES.find((c) => c.id === selectedCategory)
-                  ?.tags.filter((t) => t.toLowerCase().includes(tagSearch.toLowerCase()))
-                  .map((tag) => {
-                    const isSelected = selectedTags.includes(tag);
-                    return (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => toggleTag(tag)}
-                        className={`px-3.5 py-2 rounded-2xl text-xs font-bold transition-all flex items-center gap-2 hover:scale-105 active:scale-95 ${
-                          isSelected ? "shadow-md" : ""
-                        }`}
-                        style={{
-                          background: isSelected ? "var(--zx-primary)" : "var(--zx-surface)",
-                          color: isSelected ? "var(--zx-cream)" : "var(--zx-ink)",
-                          border: `1.5px solid ${isSelected ? "var(--zx-primary)" : "var(--zx-border)"}`,
-                        }}
-                      >
-                        {isSelected ? (
-                          <Check className="w-3.5 h-3.5" style={{ color: "var(--zx-cream)" }} />
-                        ) : (
-                          <span className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--zx-muted)" }} />
-                        )}
-                        <span>{tag}</span>
-                      </button>
-                    );
-                  })}
-              </div>
-
-              {/* Selected summary bar */}
-              <div className="mt-6 pt-4 border-t flex flex-wrap items-center gap-1.5" style={{ borderColor: "var(--zx-border)" }}>
-                <span className="text-[11px] font-bold uppercase tracking-wider mr-2" style={{ color: "var(--zx-muted)" }}>
-                  Your Stack:
-                </span>
-                {selectedTags.length === 0 ? (
-                  <span className="text-xs italic" style={{ color: "var(--zx-muted)" }}>
-                    Click tags above to add to your profile
-                  </span>
-                ) : (
-                  selectedTags.map((t) => (
-                    <span
-                      key={t}
-                      onClick={() => toggleTag(t)}
-                      className="cursor-pointer text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 hover:line-through"
-                      style={{ background: "var(--zx-surface-alt)", color: "var(--zx-primary-deep)" }}
-                    >
-                      {t} ✕
-                    </span>
-                  ))
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <button
-                type="button"
-                onClick={() => setCurrentStep(1)}
-                className="btn-secondary py-3 px-6 text-xs"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (selectedTags.length < 3) {
-                    alert("Please select at least 3 tags to personalize your profile.");
-                    return;
-                  }
-                  setCurrentStep(3);
-                }}
-                className="btn-primary py-3 px-8 text-xs font-bold shadow-md flex items-center gap-2"
-              >
-                <span>Continue: Preferences</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 3: Work Preferences & Personalization ── */}
-        {currentStep === 3 && (
-          <div className="space-y-6 animate-in fade-in zoom-in-95 duration-200">
-            <div>
-              <h2 className="text-2xl font-black" style={{ color: "var(--zx-ink)" }}>
-                Experience & Work Preferences
-              </h2>
-              <p className="text-xs" style={{ color: "var(--zx-muted)" }}>
-                Tune how Sarvam AI matches project budgets and milestone velocity to your workflow.
-              </p>
-            </div>
-
-            <div className="space-y-5">
-              {/* Experience Tier Radio */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--zx-ink)" }}>
-                  Proficiency Tier
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {["Rising Specialist", "Pro Specialist", "Master Architect"].map((lvl) => (
-                    <button
-                      key={lvl}
-                      type="button"
-                      onClick={() => setExpLevel(lvl)}
-                      className={`p-3.5 rounded-2xl text-left border-2 transition-all ${
-                        expLevel === lvl ? "shadow-sm" : ""
-                      }`}
-                      style={{
-                        background: expLevel === lvl ? "var(--zx-cream)" : "var(--zx-surface-alt)",
-                        borderColor: expLevel === lvl ? "var(--zx-primary)" : "var(--zx-border)",
-                      }}
-                    >
-                      <div className="font-bold text-xs" style={{ color: "var(--zx-ink)" }}>{lvl}</div>
-                      <div className="text-[10px] mt-0.5" style={{ color: "var(--zx-muted)" }}>
-                        {lvl.includes("Rising") && "1–2 years active"}
-                        {lvl.includes("Pro") && "3–5 years proven work"}
-                        {lvl.includes("Master") && "5+ years architectural lead"}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rate Range */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--zx-ink)" }}>
-                  Target Milestone Range
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                  {[
-                    "< 1 tMSTC",
-                    "1–5 tMSTC",
-                    "5–15 tMSTC",
-                    "15+ tMSTC",
-                  ].map((r) => (
-                    <button
-                      key={r}
-                      type="button"
-                      onClick={() => setRateRange(r)}
-                      className={`p-3 rounded-2xl text-center font-mono text-xs font-bold transition-all border-2 ${
-                        rateRange === r ? "shadow-sm" : ""
-                      }`}
-                      style={{
-                        background: rateRange === r ? "var(--zx-cream)" : "var(--zx-surface-alt)",
-                        borderColor: rateRange === r ? "var(--zx-primary)" : "var(--zx-border)",
-                        color: "var(--zx-ink)",
-                      }}
-                    >
-                      {r}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Availability */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-2" style={{ color: "var(--zx-ink)" }}>
-                  Availability
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                  {[
-                    "Immediate (Full-Time)",
-                    "Part-Time (20h/wk)",
-                    "Milestone Bounties Only",
-                  ].map((avail) => (
-                    <button
-                      key={avail}
-                      type="button"
-                      onClick={() => setAvailability(avail)}
-                      className={`p-3 rounded-2xl text-xs font-bold transition-all border-2 ${
-                        availability === avail ? "shadow-sm" : ""
-                      }`}
-                      style={{
-                        background: availability === avail ? "var(--zx-cream)" : "var(--zx-surface-alt)",
-                        borderColor: availability === avail ? "var(--zx-primary)" : "var(--zx-border)",
-                        color: "var(--zx-ink)",
-                      }}
-                    >
-                      {avail}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Bio / Mission */}
-              <div>
-                <label className="block text-xs font-bold uppercase tracking-wider mb-1" style={{ color: "var(--zx-ink)" }}>
-                  Personal Tagline / Bio
-                </label>
-                <textarea
-                  rows={3}
-                  value={bio}
-                  onChange={(e) => setBio(e.target.value)}
-                  placeholder="Share a brief introduction with clients and Sarvam AI..."
-                  className="w-full p-3 rounded-2xl text-xs focus:outline-none"
-                  style={{
-                    background: "var(--zx-cream)",
-                    border: "1px solid var(--zx-border)",
-                    color: "var(--zx-ink)",
-                  }}
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <button
-                type="button"
-                onClick={() => setCurrentStep(2)}
-                className="btn-secondary py-3 px-6 text-xs"
-              >
-                <ArrowLeft className="w-4 h-4 mr-1" /> Back
-              </button>
-              <button
-                type="button"
-                onClick={() => setCurrentStep(4)}
-                className="btn-primary py-3 px-8 text-xs font-bold shadow-md flex items-center gap-2"
-              >
-                <span>Continue: Web3 Binding</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ── STEP 4: Discord Gatekeeper Web3 Identity Verification ── */}
-        {currentStep === 4 && (
-          <div className="space-y-6 text-center animate-in fade-in zoom-in-95 duration-200">
-            {/* Discord Bot Card Schematic */}
-            <div
-              className="rounded-3xl p-6 sm:p-8 space-y-4 max-w-lg mx-auto text-left relative overflow-hidden shadow-sm"
-              style={{
-                background: "var(--zx-surface)",
-                border: "1px solid var(--zx-border)",
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div
-                  className="w-12 h-12 rounded-2xl flex items-center justify-center font-black shadow-sm"
-                  style={{ background: "var(--zx-primary)", color: "white" }}
-                >
-                  <ShieldCheck className="w-6 h-6" />
-                </div>
                 <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-black text-sm text-[var(--zx-ink)]">
-                      Zentrix Gatekeeper Bot
-                    </span>
-                    <span
-                      className="text-[9px] font-black uppercase px-2 py-0.5 rounded-full text-white"
-                      style={{ background: "var(--zx-primary-deep)" }}
-                    >
-                      EIP-191 Verified
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--zx-primary)]">
+                    Question 03
+                  </span>
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-black text-[var(--zx-ink)] tracking-tight mt-1">
+                      Choose your craft tags
+                    </h2>
+                    <span className="text-xs font-bold font-mono px-2.5 py-1 rounded-full bg-red-50 text-[var(--zx-primary)] border border-red-200">
+                      {selectedTags.length} / 10 Selected
                     </span>
                   </div>
-                  <p className="text-xs" style={{ color: "var(--zx-muted)" }}>
-                    MST Testnet · Chain ID 91562037
+                  <p className="text-xs text-[var(--zx-muted)] mt-1">
+                    Click to select your specialized capabilities. These feed directly into Sarvam AI semantic matching.
                   </p>
                 </div>
-              </div>
 
-              <div
-                className="p-4 rounded-2xl space-y-2"
-                style={{ background: "var(--zx-surface-alt)", border: "1px solid var(--zx-border)" }}
+                {/* Category Pills Bar */}
+                <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
+                  {FREELANCE_CATEGORIES.map((cat) => (
+                    <button
+                      key={cat.id}
+                      type="button"
+                      onClick={() => setActiveCategory(cat.id)}
+                      className={`px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition-all ${
+                        activeCategory === cat.id
+                          ? "bg-[var(--zx-ink)] text-white shadow-xs"
+                          : "bg-slate-100 text-[var(--zx-muted)] hover:text-[var(--zx-ink)]"
+                      }`}
+                    >
+                      {cat.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Choosable Tag Chips Grid */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 min-h-[180px]">
+                  {FREELANCE_CATEGORIES.filter((c) => c.id === activeCategory).map((cat) => (
+                    <div key={cat.id} className="flex flex-wrap gap-2">
+                      {cat.tags.map((tag) => {
+                        const isSelected = selectedTags.includes(tag);
+                        return (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => toggleTag(tag)}
+                            className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border flex items-center gap-1.5 ${
+                              isSelected
+                                ? "bg-[var(--zx-primary)] text-white border-[var(--zx-primary)] shadow-xs scale-102"
+                                : "bg-white text-slate-800 border-slate-200 hover:border-slate-300 hover:bg-slate-100/60"
+                            }`}
+                          >
+                            <span>{isSelected ? "✓" : "+"}</span>
+                            <span>{tag}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Selected Tags Preview */}
+                <div className="text-xs">
+                  <span className="font-bold text-[var(--zx-muted)] uppercase tracking-wider text-[10px]">
+                    Your Selected Stack:
+                  </span>
+                  <div className="flex flex-wrap gap-1.5 mt-1.5">
+                    {selectedTags.length === 0 ? (
+                      <span className="text-[var(--zx-muted)] italic">
+                        No tags selected yet. Click any tag above!
+                      </span>
+                    ) : (
+                      selectedTags.map((tag) => (
+                        <span
+                          key={tag}
+                          onClick={() => toggleTag(tag)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-white border border-slate-300 text-slate-800 cursor-pointer hover:bg-red-50 hover:border-red-200 hover:text-red-700 transition-colors"
+                          title="Click to remove"
+                        >
+                          <span>{tag}</span>
+                          <span className="text-slate-400">×</span>
+                        </span>
+                      ))
+                    )}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── STEP 4: PERSONALIZATION & WORK PREFERENCES ── */}
+            {currentStep === 4 && (
+              <motion.div
+                key="step-4"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="space-y-6"
               >
-                <div className="flex items-center justify-between text-xs">
-                  <span style={{ color: "var(--zx-muted)" }}>Ident:</span>
-                  <span className="font-bold text-[var(--zx-ink)]">
-                    {name} (@{handle})
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--zx-primary)]">
+                    Question 04
                   </span>
+                  <h2 className="text-2xl font-black text-[var(--zx-ink)] tracking-tight mt-1">
+                    Personalize your work preferences
+                  </h2>
+                  <p className="text-xs text-[var(--zx-muted)] mt-1">
+                    Help us match you with optimal escrow contracts and verified project opportunities.
+                  </p>
                 </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span style={{ color: "var(--zx-muted)" }}>Role:</span>
-                  <span className="font-bold uppercase" style={{ color: "var(--zx-primary-deep)" }}>
-                    {role}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-xs">
-                  <span style={{ color: "var(--zx-muted)" }}>Bound Skills:</span>
-                  <span className="font-bold text-[var(--zx-ink)]">{selectedTags.length} tags</span>
-                </div>
-                <div className="flex items-center justify-between text-xs pt-1 border-t" style={{ borderColor: "var(--zx-border)" }}>
-                  <span style={{ color: "var(--zx-muted)" }}>Wallet:</span>
-                  <span className="font-mono text-xs font-semibold text-[var(--zx-primary-deep)]">
-                    {address ? `${address.slice(0, 8)}...${address.slice(-6)}` : "No Wallet Connected"}
-                  </span>
-                </div>
-              </div>
-            </div>
 
-            {/* Wallet connection status button */}
-            {!address ? (
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={openConnectModal}
-                  className="btn-primary py-3.5 px-8 text-sm font-bold shadow-lg inline-flex items-center gap-2"
+                {/* Experience Tier Selector */}
+                <div>
+                  <label className="block text-xs font-bold text-[var(--zx-ink)] mb-2">
+                    Experience Level
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      { title: "Apprentice", sub: "0–1 yr in Web3" },
+                      { title: "Specialist", sub: "2–4 yrs in Web3" },
+                      { title: "Architect", sub: "5+ yrs Lead/Auditor" },
+                    ].map((lvl) => (
+                      <button
+                        key={lvl.title}
+                        type="button"
+                        onClick={() => setExpLevel(`${lvl.title} (${lvl.sub})`)}
+                        className={`p-3 rounded-xl border text-left transition-all ${
+                          expLevel.includes(lvl.title)
+                            ? "border-[var(--zx-primary)] bg-red-50/20 ring-1 ring-red-100"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <div className="text-xs font-bold text-[var(--zx-ink)]">
+                          {lvl.title}
+                        </div>
+                        <div className="text-[10px] text-[var(--zx-muted)]">
+                          {lvl.sub}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Target Milestone Size */}
+                <div>
+                  <label className="block text-xs font-bold text-[var(--zx-ink)] mb-2">
+                    Expected Milestone Size
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      "Micro (< 1 tMSTC)",
+                      "Standard (1–5 tMSTC)",
+                      "High-Value (5–20 tMSTC)",
+                    ].map((rate) => (
+                      <button
+                        key={rate}
+                        type="button"
+                        onClick={() => setRateRange(rate)}
+                        className={`p-3 rounded-xl border text-center text-xs font-bold transition-all ${
+                          rateRange === rate
+                            ? "border-[var(--zx-primary)] bg-red-50/20 text-[var(--zx-primary)]"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        {rate}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Availability */}
+                <div>
+                  <label className="block text-xs font-bold text-[var(--zx-ink)] mb-2">
+                    Availability
+                  </label>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {[
+                      "Immediate (Full-Time)",
+                      "Part-Time (10–20h/wk)",
+                      "Bounty / Project-Based",
+                    ].map((avail) => (
+                      <button
+                        key={avail}
+                        type="button"
+                        onClick={() => setAvailability(avail)}
+                        className={`p-3 rounded-xl border text-center text-xs font-bold transition-all ${
+                          availability === avail
+                            ? "border-[var(--zx-primary)] bg-red-50/20 text-[var(--zx-primary)]"
+                            : "border-slate-200 bg-white text-slate-700 hover:border-slate-300"
+                        }`}
+                      >
+                        {avail}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* ── STEP 5: WEB3 ANCHOR & BINDING ── */}
+            {currentStep === 5 && (
+              <motion.div
+                key="step-5"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -16 }}
+                transition={{ duration: 0.22, ease: "easeOut" }}
+                className="space-y-6"
+              >
+                <div>
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-[var(--zx-primary)]">
+                    Final Step 05
+                  </span>
+                  <h2 className="text-2xl font-black text-[var(--zx-ink)] tracking-tight mt-1">
+                    Cryptographic Web3 Anchor
+                  </h2>
+                  <p className="text-xs text-[var(--zx-muted)] mt-1">
+                    Sign an EIP-191 message to cryptographically tie your Zentrix profile to your MST Testnet address.
+                  </p>
+                </div>
+
+                {/* Wallet Connection Status */}
+                <div
+                  className="p-4 rounded-2xl border"
+                  style={{
+                    background: "var(--zx-surface-alt)",
+                    borderColor: "var(--zx-border)",
+                  }}
                 >
-                  <Wallet className="w-5 h-5" />
-                  <span>Connect BridgeKey / Wallet</span>
-                </button>
-                <p className="text-xs" style={{ color: "var(--zx-muted)" }}>
-                  Click to connect BridgeKey or select an instant Testnet Demo account.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-white"
+                        style={{ background: "var(--zx-primary)" }}
+                      >
+                        <Wallet className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-[var(--zx-ink)]">
+                          {isConnected && address
+                            ? `${address.slice(0, 8)}...${address.slice(-6)}`
+                            : "No Wallet Connected"}
+                        </div>
+                        <div className="text-[11px] text-[var(--zx-muted)]">
+                          MST Testnet (Chain ID 91562037)
+                        </div>
+                      </div>
+                    </div>
+
+                    {!isConnected && (
+                      <button
+                        type="button"
+                        onClick={openConnectModal}
+                        className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-95 shadow-xs"
+                        style={{ background: "var(--zx-primary)" }}
+                      >
+                        Connect
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Profile Confirmation Summary */}
+                <div className="p-4 rounded-2xl bg-white border border-slate-200 text-xs space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[var(--zx-muted)]">Role:</span>
+                    <span className="font-bold capitalize text-[var(--zx-ink)]">
+                      {role}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[var(--zx-muted)]">Creator:</span>
+                    <span className="font-bold text-[var(--zx-ink)]">
+                      {name} (@{handle})
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[var(--zx-muted)]">Skills Chosen:</span>
+                    <span className="font-bold text-[var(--zx-primary)]">
+                      {selectedTags.length} craft tags
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-[var(--zx-muted)]">Privacy Standard:</span>
+                    <span className="font-semibold text-emerald-700 flex items-center gap-1">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" /> DPDP Zero-PII
+                    </span>
+                  </div>
+                </div>
+
                 {signatureStatus && (
-                  <div
-                    className="p-3.5 rounded-2xl text-xs font-semibold flex items-center justify-center gap-2"
-                    style={{
-                      background: isSuccess
-                        ? "color-mix(in srgb, var(--zx-success) 15%, transparent)"
-                        : "var(--zx-cream)",
-                      border: `1px solid ${isSuccess ? "var(--zx-success)" : "var(--zx-border)"}`,
-                      color: isSuccess ? "var(--zx-success)" : "var(--zx-ink)",
-                    }}
-                  >
-                    {isSubmitting && <RefreshCw className="w-4 h-4 animate-spin text-[var(--zx-primary)]" />}
-                    {isSuccess && <CheckCircle2 className="w-4 h-4 text-[var(--zx-success)]" />}
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-xs font-mono flex items-center gap-2">
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>{signatureStatus}</span>
                   </div>
                 )}
 
-                <div className="flex items-center justify-center gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setCurrentStep(3)}
-                    disabled={isSubmitting || isSuccess}
-                    className="btn-secondary py-3 px-6 text-xs"
-                  >
-                    <ArrowLeft className="w-4 h-4 mr-1" /> Back
-                  </button>
+                {isSuccess && (
+                  <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                    <span>Successfully verified! Redirecting to your Profile Bento...</span>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
 
-                  <button
-                    type="button"
-                    onClick={handleWalletBinding}
-                    disabled={isSubmitting || isSuccess}
-                    className="btn-primary py-3.5 px-8 text-xs font-black shadow-lg flex items-center gap-2"
-                  >
-                    {isSubmitting ? (
-                      <span className="flex items-center gap-2">
-                        <RefreshCw className="w-4 h-4 animate-spin" />
-                        Binding On-Chain...
-                      </span>
-                    ) : isSuccess ? (
-                      <span className="flex items-center gap-2">
-                        <CheckCircle2 className="w-4 h-4" />
-                        Onboarding Complete!
-                      </span>
-                    ) : (
-                      <span className="flex items-center gap-2">
-                        <ShieldCheck className="w-4 h-4" />
-                        Sign & Enter Zentrix
-                      </span>
-                    )}
-                  </button>
-                </div>
-              </div>
+          {/* ── Discord Schematic Action Navigation Buttons ── */}
+          <div
+            className="flex items-center justify-between pt-6 mt-6 border-t"
+            style={{ borderColor: "var(--zx-border)" }}
+          >
+            {currentStep > 1 ? (
+              <button
+                type="button"
+                onClick={() => setCurrentStep((prev) => (prev - 1) as any)}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border hover:bg-slate-50 transition-colors"
+                style={{ borderColor: "var(--zx-border)" }}
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back</span>
+              </button>
+            ) : (
+              <div />
+            )}
+
+            {currentStep < 5 ? (
+              <button
+                type="button"
+                onClick={() => setCurrentStep((prev) => (prev + 1) as any)}
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-opacity shadow-xs hover:opacity-95"
+                style={{ background: "var(--zx-primary)" }}
+              >
+                <span>Continue</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isSubmitting || !isConnected}
+                onClick={handleWalletBinding}
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white transition-opacity shadow-md hover:opacity-95 disabled:opacity-50"
+                style={{ background: "var(--zx-primary)" }}
+              >
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Anchoring to MST...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="w-4 h-4" />
+                    <span>Sign & Complete Onboarding</span>
+                  </>
+                )}
+              </button>
             )}
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

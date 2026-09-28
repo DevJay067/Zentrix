@@ -63,46 +63,46 @@ export const AmbientAudio: React.FC = () => {
   return (
     <button
       onClick={toggleAudio}
-      title={isPlaying ? "Mute ambient audio" : "Play ambient audio"}
+      title={isPlaying ? "Mute soundtrack" : "Play ambient soundtrack"}
       aria-label="Toggle ambient soundtrack"
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-mono transition-all hover:scale-105 active:scale-95 group"
+      className="w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-xs border"
       style={{
         background: isPlaying ? "var(--zx-surface-alt)" : "var(--zx-surface)",
-        border: "1px solid var(--zx-border)",
-        color: isPlaying ? "var(--zx-primary-deep)" : "var(--zx-muted)",
+        borderColor: isPlaying ? "var(--zx-primary)" : "var(--zx-border)",
+        color: isPlaying ? "var(--zx-primary)" : "var(--zx-muted)",
       }}
     >
-      {/* Equalizer Waveform Indicator */}
-      <div className="flex items-end gap-0.5 h-3 w-3.5">
-        <span
-          className={`w-0.5 rounded-full transition-all duration-300 ${isPlaying ? "animate-pulse" : "h-1"}`}
-          style={{
-            height: isPlaying ? "100%" : "30%",
-            background: "var(--zx-primary-deep)",
-            animationDelay: "0ms",
-          }}
-        />
-        <span
-          className={`w-0.5 rounded-full transition-all duration-300 ${isPlaying ? "animate-pulse" : "h-2"}`}
-          style={{
-            height: isPlaying ? "70%" : "50%",
-            background: "var(--zx-primary-deep)",
-            animationDelay: "150ms",
-          }}
-        />
-        <span
-          className={`w-0.5 rounded-full transition-all duration-300 ${isPlaying ? "animate-pulse" : "h-1.5"}`}
-          style={{
-            height: isPlaying ? "90%" : "40%",
-            background: "var(--zx-primary-deep)",
-            animationDelay: "300ms",
-          }}
-        />
-      </div>
-
-      <span className="font-semibold text-[11px] tracking-wider uppercase">
-        {isPlaying ? "Sound: On" : "Sound: Off"}
-      </span>
+      {isPlaying ? (
+        /* Equalizer Waveform Indicator */
+        <div className="flex items-end gap-0.5 h-3.5 w-3.5">
+          <span
+            className="w-0.5 rounded-full animate-pulse"
+            style={{
+              height: "100%",
+              background: "var(--zx-primary)",
+              animationDelay: "0ms",
+            }}
+          />
+          <span
+            className="w-0.5 rounded-full animate-pulse"
+            style={{
+              height: "65%",
+              background: "var(--zx-primary)",
+              animationDelay: "150ms",
+            }}
+          />
+          <span
+            className="w-0.5 rounded-full animate-pulse"
+            style={{
+              height: "85%",
+              background: "var(--zx-primary)",
+              animationDelay: "300ms",
+            }}
+          />
+        </div>
+      ) : (
+        <VolumeX className="w-3.5 h-3.5 text-[var(--zx-muted)]" />
+      )}
     </button>
   );
 };
