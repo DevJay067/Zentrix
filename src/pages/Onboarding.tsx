@@ -76,6 +76,11 @@ export const OnboardingPage: React.FC = () => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Sequential protection: user must authenticate (Email/Google) first
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+
   // If already onboarded, redirect immediately to Profile bento (after all hooks)
   if (profile?.isOnboarded) {
     return <Navigate to="/profile" replace />;

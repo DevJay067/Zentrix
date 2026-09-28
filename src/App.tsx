@@ -28,8 +28,7 @@ interface ProtectedRouteProps {
  * Permits access only to authenticated Firebase users or approved Web3 connected addresses.
  */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { user, loading } = useAuth();
-  const { isConnected, address } = useWallet();
+  const { user, profile, loading } = useAuth();
   const location = useLocation();
 
   if (loading) {
@@ -44,12 +43,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     );
   }
 
-  const isWalletApproved =
-    typeof window !== "undefined" && localStorage.getItem("zx_wallet_approved") === "true";
-  const isAuthenticated = !!user || (isConnected && !!address) || isWalletApproved;
-
-  if (!isAuthenticated) {
+  // Mandatory sequential flow:
+  // 1. Must be authenticated with Firebase user (Email / Google)
+  if (!user) {
     return <Navigate to="/login" replace state={{ from: location.pathname }} />;
+  }
+
+  // 2. Must be onboarded (Profile & Web3 wallet bound)
+  if (!profile?.isOnboarded && location.pathname !== "/onboarding") {
+    return <Navigate to="/onboarding" replace state={{ from: location.pathname }} />;
   }
 
   return <>{children}</>;

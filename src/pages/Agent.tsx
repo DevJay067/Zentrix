@@ -574,10 +574,10 @@ export const AgentPage: React.FC = () => {
         >
           <div className="flex items-center gap-3">
             <div
-              className="w-10 h-10 flex items-center justify-center p-1.5 shrink-0"
-              style={{ background: "var(--zx-primary-deep)", borderRadius: "0.75rem" }}
+              className="w-10 h-10 flex items-center justify-center p-0 shrink-0"
+              style={{overflow:"hidden", background: "var(--zx-primary-deep)", borderRadius: "6rem" }}
             >
-              <img src="/robot.png" alt="Sarvam AI Agent" className="w-7 h-7 object-contain" />
+                <img src="/robot.png" alt="Sarvam AI Agent" className="robocontain" />
             </div>
             <div>
               <h1 className="text-xl font-extrabold text-[var(--zx-ink)]">Zentrix AI Agent</h1>
