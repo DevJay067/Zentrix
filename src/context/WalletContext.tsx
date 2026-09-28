@@ -218,6 +218,12 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
 
     if (!signer && !address) throw new Error("Wallet not connected");
+
+    // Helper: detect BridgeKey's site-not-connected rejection
+    const isBridgeKeyNotConnected = (e: any) =>
+      e?.message?.toLowerCase().includes("not connected to bridgekey") ||
+      e?.message?.toLowerCase().includes("connect the site first");
+
     if (signer && typeof signer.signMessage === "function") {
       try {
         return await signer.signMessage(message);
@@ -225,9 +231,34 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (err?.code === 4001 || err?.message?.includes("rejected") || err?.message?.includes("User denied")) {
           throw err;
         }
+
+        // BridgeKey throws "This site is not connected to BridgeKey. Connect the site first."
+        // → trigger eth_requestAccounts to open BridgeKey's connect popup, then retry
+        if (isBridgeKeyNotConnected(err) && ethereum?.request) {
+          try {
+            const accounts: string[] = await ethereum.request({ method: "eth_requestAccounts", params: [] });
+            if (accounts && accounts.length > 0) {
+              const freshProvider = new BrowserProvider(ethereum, "any");
+              const freshSigner = await freshProvider.getSigner();
+              // Update signer state for future calls
+              setSigner(freshSigner);
+              setProvider(freshProvider);
+              setAddress(accounts[0]);
+              return await freshSigner.signMessage(message);
+            }
+          } catch (reconnectErr: any) {
+            // User rejected the BridgeKey connect popup
+            if (reconnectErr?.code === 4001 || reconnectErr?.message?.includes("rejected") || reconnectErr?.message?.includes("User denied")) {
+              throw reconnectErr;
+            }
+            console.warn("[Wallet] BridgeKey reconnect failed:", reconnectErr);
+          }
+        }
+
         console.warn("[Wallet] signer.signMessage failed, attempting raw personal_sign fallback:", err);
       }
     }
+
     if (ethereum && ethereum.request && address) {
       try {
         return await ethereum.request({
@@ -238,6 +269,13 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         if (err2?.code === 4001 || err2?.message?.includes("rejected") || err2?.message?.includes("User denied")) {
           throw err2;
         }
+        // BridgeKey not connected at personal_sign level — try to reconnect first
+        if (isBridgeKeyNotConnected(err2)) {
+          const accounts: string[] = await ethereum.request({ method: "eth_requestAccounts", params: [] });
+          if (accounts && accounts.length > 0) {
+            return await ethereum.request({ method: "personal_sign", params: [message, accounts[0]] });
+          }
+        }
         const hexMsg = "0x" + Array.from(new TextEncoder().encode(message)).map((b) => b.toString(16).padStart(2, "0")).join("");
         return await ethereum.request({
           method: "personal_sign",
@@ -247,6 +285,7 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
     throw new Error("Signer does not support signMessage");
   };
+
 
   // Robust silent auto-reconnect on mount / reload
   useEffect(() => {

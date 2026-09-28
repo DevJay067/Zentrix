@@ -34,7 +34,7 @@ export const OnboardingPage: React.FC = () => {
   const location = useLocation();
   const from = (location.state as any)?.from || "/dashboard";
   const { user, profile, saveOnboarding } = useAuth();
-  const { address, isConnected, isCorrectNetwork, switchNetwork, openConnectModal, signMessage } = useWallet();
+  const { address, isConnected, isCorrectNetwork, switchNetwork, openConnectModal, signMessage, connectWallet } = useWallet();
 
   // Discord Sequential Pop-up Steps (1 to 5)
   // Step 1: Choose Realm / Role
@@ -200,12 +200,24 @@ export const OnboardingPage: React.FC = () => {
       }, 1200);
     } catch (err: any) {
       console.error("Binding failed:", err);
+
+      const isBridgeKeyNotConnected =
+        err?.message?.toLowerCase().includes("not connected to bridgekey") ||
+        err?.message?.toLowerCase().includes("connect the site first");
+
       if (err?.code === "NO_PROVIDER") {
-        // No wallet extension at all — open install/connect modal
-        setStepError(
-          "No wallet extension detected. Please install BridgeKey or MetaMask, connect it, then try again."
-        );
+        setStepError("No wallet extension detected. Please install BridgeKey or MetaMask, connect it, then try again.");
         openConnectModal();
+      } else if (isBridgeKeyNotConnected) {
+        // BridgeKey is installed but the site isn't authorized yet — trigger connect
+        setStepError("BridgeKey needs to authorize this site. Opening connection popup…");
+        try {
+          await connectWallet("bridgekey");
+          // Wallet is now reconnected — let the user click the button again
+          setStepError("Wallet reconnected! Please click 'Bind & Complete' again to sign.");
+        } catch {
+          setStepError("Please open BridgeKey, click 'Connected Sites', and add zentrix-marketplace.vercel.app, then try again.");
+        }
       } else if (err?.code === 4001 || err?.message?.includes("rejected") || err?.message?.includes("User denied")) {
         setStepError("Signature request cancelled. Please sign the confirmation in your wallet to complete onboarding.");
       } else {
