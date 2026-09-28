@@ -26,6 +26,7 @@ import {
   Flame,
   Clock,
   Compass,
+  AlertCircle,
 } from "lucide-react";
 
 export const OnboardingPage: React.FC = () => {
