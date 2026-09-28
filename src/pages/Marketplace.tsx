@@ -301,20 +301,20 @@ export const MarketplacePage: React.FC = () => {
   };
 
   return (
-    <div className="space-y-8">
+    <div className="zx-marketplace-page space-y-8">
       {/* ── Interactive Escrow Flow Infographic ── */}
       <EscrowFlowInfographic />
 
       {/* ── Header and Post a Gig CTA ── */}
       <div
-        className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4"
+        className="zx-marketplace-header flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4"
         style={{ borderBottom: "1px solid var(--zx-border)" }}
       >
         <div>
-          <h1 className="text-3xl font-black" style={{ color: "var(--zx-ink)" }}>
+          <h1 className="zx-marketplace-title text-3xl font-black" style={{ color: "var(--zx-ink)" }}>
             Marketplace
           </h1>
-          <p className="text-xs sm:text-sm mt-0.5" style={{ color: "var(--zx-muted)" }}>
+          <p className="zx-marketplace-subtitle text-xs sm:text-sm mt-0.5" style={{ color: "var(--zx-muted)" }}>
             Explore open projects with escrow-backed funding across Development, Design, Content, AI & Growth.
           </p>
         </div>
@@ -328,7 +328,7 @@ export const MarketplacePage: React.FC = () => {
               setIsCreateModalOpen(true);
             }
           }}
-          className="btn-primary shadow-md flex items-center gap-2 text-xs py-3 px-5"
+          className="zx-post-gig-btn btn-primary shadow-md flex items-center gap-2 text-xs py-3 px-5"
         >
           <PlusCircle className="w-4 h-4" />
           <span>Post a Milestone Gig</span>
@@ -336,10 +336,10 @@ export const MarketplacePage: React.FC = () => {
       </div>
 
       {/* ── Category Filters & Search Bar ── */}
-      <div className="space-y-3">
+      <div className="zx-filters-section space-y-3">
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           {/* Category Tabs */}
-          <div className="flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1">
+          <div className="zx-category-filter-bar flex items-center gap-2 overflow-x-auto w-full md:w-auto pb-1">
             {categories.map((cat) => (
               <button
                 key={cat}
@@ -347,7 +347,7 @@ export const MarketplacePage: React.FC = () => {
                   setSelectedCategory(cat);
                   setSelectedTag("All");
                 }}
-                className={`px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`zx-category-pill px-4 py-2 rounded-2xl text-xs font-bold whitespace-nowrap transition-all ${
                   selectedCategory === cat
                     ? "shadow-sm scale-105"
                     : "opacity-75 hover:opacity-100"

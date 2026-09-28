@@ -13,7 +13,7 @@ import {
 export const Footer: React.FC = () => {
   return (
     <footer
-      className="mt-16 border-t overflow-hidden relative"
+      className="zx-footer mt-16 border-t overflow-hidden relative"
       style={{
         background: "var(--zx-surface)",
         borderColor: "var(--zx-border)",
@@ -21,20 +21,20 @@ export const Footer: React.FC = () => {
     >
       {/* Top Subtle Red Accent Line */}
       <div
-        className="h-1 w-full"
+        className="zx-footer-accent-line h-1 w-full"
         style={{ background: "var(--zx-primary)" }}
       />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
+      <div className="zx-footer-container max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 pb-8">
         {/* ─── DIRECTORY GRID ─── */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
+        <div className="zx-footer-grid grid grid-cols-2 md:grid-cols-5 gap-8 mb-12">
           {/* Column 1: Brand Info */}
-          <div className="col-span-2 space-y-3">
+          <div className="zx-footer-brand col-span-2 space-y-3">
             <div className="flex items-center gap-2">
               <img
                 src="/navlogo.png"
                 alt="Zentrix Logo"
-                className="h-8 w-auto object-contain"
+                className="zx-footer-logo h-8 w-auto object-contain"
               />
             </div>
             <p className="text-xs text-[var(--zx-muted)] leading-relaxed max-w-sm">
@@ -183,23 +183,23 @@ export const Footer: React.FC = () => {
         </div>
 
         {/* ─── ANTIGRAVITY BIT FONT WATERMARK BANNER ─── */}
-        <div className="pt-6 pb-2 border-t border-b overflow-hidden relative select-none" style={{ borderColor: "var(--zx-border)" }}>
-          <div className="text-center font-mono font-black tracking-[0.25em] sm:tracking-[0.45em] text-3xl sm:text-6xl lg:text-7xl text-slate-900/10 uppercase transition-all duration-500 hover:text-[var(--zx-primary)]/15">
+        <div className="zx-footer-watermark pt-6 pb-2 border-t border-b overflow-hidden relative select-none" style={{ borderColor: "var(--zx-border)" }}>
+          <div className="zx-footer-watermark-text text-center font-mono font-black tracking-[0.25em] sm:tracking-[0.45em] text-3xl sm:text-6xl lg:text-7xl text-slate-900/10 uppercase transition-all duration-500 hover:text-[var(--zx-primary)]/15">
             Z E N T R I X
           </div>
-          <div className="text-center text-[10px] font-mono tracking-widest uppercase text-[var(--zx-muted)] mt-1">
+          <div className="zx-footer-watermark-sub text-center text-[10px] font-mono tracking-widest uppercase text-[var(--zx-muted)] mt-1">
             • ANTIGRAVITY AGENTIC ARCHITECTURE • NON-CUSTODIAL EVM • MST TESTNET 91562037 •
           </div>
         </div>
 
         {/* ─── BOTTOM COPYRIGHT & TELEMETRY BAR ─── */}
-        <div className="mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--zx-muted)]">
-          <div className="flex items-center gap-2">
+        <div className="zx-footer-bottom-bar mt-6 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-[var(--zx-muted)]">
+          <div className="zx-footer-copyright flex items-center gap-2">
             <span className="font-bold text-[var(--zx-ink)]">Zentrix Protocol</span>
             <span>· MIT License · MST Blockchain Buildathon 2026</span>
           </div>
 
-          <div className="flex items-center gap-3 font-mono text-[11px]">
+          <div className="zx-footer-telemetry flex items-center gap-3 font-mono text-[11px]">
             <span className="flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
               <span>RPC 200 OK</span>

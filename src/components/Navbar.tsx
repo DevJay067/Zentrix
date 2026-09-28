@@ -67,9 +67,9 @@ export const Navbar: React.FC = () => {
   const isActivePrefix = (prefix: string) => pathname.startsWith(prefix);
 
   return (
-    <header className="sticky top-0 z-50 w-full px-3 sm:px-6 pt-3 pb-2 transition-all duration-300">
+    <header className="zx-header sticky top-0 z-50 w-full px-3 sm:px-6 pt-3 pb-2 transition-all duration-300">
       <div
-        className="max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-2.5 rounded-full border shadow-sm transition-all duration-300"
+        className="zx-navbar max-w-7xl mx-auto flex items-center justify-between px-4 sm:px-6 py-2.5 rounded-full border shadow-sm transition-all duration-300"
         style={{
           background: "rgba(255, 255, 255, 0.92)",
           backdropFilter: "blur(20px)",
@@ -79,16 +79,16 @@ export const Navbar: React.FC = () => {
         }}
       >
         {/* ─── LEFT: Crisp Navlogo + Network Indicator ─── */}
-        <div className="flex items-center gap-3 shrink-0">
-          <Link to="/" className="flex items-center gap-2 group">
+        <div className="zx-nav-brand flex items-center gap-3 shrink-0">
+          <Link to="/" className="zx-nav-brand-link flex items-center gap-2 group">
             <img
               src="/navlogo.png"
               alt="Zentrix"
-              className="h-7 sm:h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+              className="zx-nav-logo h-7 sm:h-8 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
             />
           </Link>
 
-          <span className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80">
+          <span className="zx-network-badge hidden xl:inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-semibold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200/80">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
             MST Testnet
           </span>
@@ -96,7 +96,7 @@ export const Navbar: React.FC = () => {
 
         {/* ─── CENTER: Minimal Floating Nav Island (ReactBits style) ─── */}
         <nav
-          className="hidden md:flex items-center gap-1 px-2.5 py-1 rounded-full border shadow-inner text-xs font-semibold"
+          className="zx-nav-island hidden md:flex items-center gap-1 px-2.5 py-1 rounded-full border shadow-inner text-xs font-semibold"
           style={{
             background: "var(--zx-surface-alt)",
             borderColor: "var(--zx-border)",
@@ -104,7 +104,7 @@ export const Navbar: React.FC = () => {
         >
           <Link
             to="/"
-            className={`px-3.5 py-1.5 rounded-full transition-all duration-200 ${
+            className={`zx-nav-item px-3.5 py-1.5 rounded-full transition-all duration-200 ${
               isActive("/")
                 ? "bg-white text-[var(--zx-primary-deep)] shadow-sm font-bold"
                 : "text-[var(--zx-muted)] hover:text-[var(--zx-ink)] hover:bg-white/60"
@@ -115,7 +115,7 @@ export const Navbar: React.FC = () => {
 
           <Link
             to="/marketplace"
-            className={`px-3.5 py-1.5 rounded-full transition-all duration-200 ${
+            className={`zx-nav-item zx-nav-marketplace px-3.5 py-1.5 rounded-full transition-all duration-200 ${
               isActivePrefix("/marketplace")
                 ? "bg-white text-[var(--zx-primary-deep)] shadow-sm font-bold"
                 : "text-[var(--zx-muted)] hover:text-[var(--zx-ink)] hover:bg-white/60"
@@ -126,7 +126,7 @@ export const Navbar: React.FC = () => {
 
           <Link
             to="/agent"
-            className={`px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1.5 ${
+            className={`zx-nav-item zx-nav-agent px-3.5 py-1.5 rounded-full transition-all duration-200 flex items-center gap-1.5 ${
               isActivePrefix("/agent")
                 ? "bg-white text-[var(--zx-primary-deep)] shadow-sm font-bold"
                 : "text-[var(--zx-muted)] hover:text-[var(--zx-ink)] hover:bg-white/60"
