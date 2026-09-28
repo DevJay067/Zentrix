@@ -35,10 +35,7 @@ export const Navbar: React.FC = () => {
     openConnectModal,
   } = useWallet();
 
-  const isAuthenticated =
-    !!user ||
-    (isConnected && !!address) ||
-    (typeof window !== "undefined" && localStorage.getItem("zx_wallet_approved") === "true");
+  const isAuthenticated = !!user && !!profile?.isOnboarded;
 
   const [productsOpen, setProductsOpen] = useState(false);
   const [monitorOpen, setMonitorOpen] = useState(false);

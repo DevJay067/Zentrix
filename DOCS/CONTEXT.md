@@ -165,11 +165,20 @@ graph TD
   - `/login`: Web3 & Firebase authentication portal
   - `/onboarding`: Progressive role & profile setup
 
-### 6.6 Web3 Login & Pass Tier Architecture (`src/pages/Login.tsx` & `src/pages/Dashboard.tsx`)
-- **Elegant Web3 Login UI:**
-  - Ambient glowing glassmorphic card with protocol trust pills (non-custodial escrow, BridgeKey signing, Sarvam 30B AI).
-  - Dual-mode tab switcher: Web3 Wallet (BridgeKey 1-click connect & auto MST network switch) and Firebase Auth (Email/Password & Google OAuth).
-  - State-aware redirection: preserves `from` route so redirected users seamlessly return to their destination post-login.
+### 6.6 Authentication & Sequential Onboarding Architecture (`src/pages/Login.tsx` & `src/pages/Onboarding.tsx`)
+- **Strict Identity Authentication (`/login`):**
+  - Ambient glowing glassmorphic card with protocol trust pills (non-custodial escrow, MST Testnet 91562037, DPDP 2023 compliance).
+  - Authenticates strictly via Firebase: 1-Click Google OAuth or Email/Password credentials (no direct wallet connection bypass).
+  - Upon authentication, automatically routes un-onboarded users directly into `/onboarding` (preserving any intended `from` destination).
+- **Sequential Protocol Onboarding Wizard (`/onboarding`):**
+  - Step 1: Role & Realm Selection (Creator / Freelancer vs Hirer / Client)
+  - Step 2: Profile Identity & Avatar Canvas Encoder
+  - Step 3: Interactive Craft Tag Selection
+  - Step 4: Engagement Preferences & Rates
+  - **Step 5 (Final Section): Web3 Wallet Anchor & Cryptographic Binding**
+    - Connects BridgeKey or EVM wallet to MST Testnet (Chain ID `91562037`).
+    - Requests an EIP-191 binding signature confirming identity ownership.
+    - Saves profile to Firebase Realtime Database and local storage, activating `isOnboarded: true` and routing seamlessly to target destination.
 - **ZentrixPass Tier Representation:**
   - On-chain and cached asset scanning via `scanNFTAssets()` and `getCachedNFTAssets()`.
   - **Tier 0 (Free):** 2 Sarvam queries/day, `/1.gif` rendered in grayscale with lock badge.

@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { Navigate, useNavigate, useLocation } from "react-router-dom";
 import { useAuth, UserRole } from "../context/AuthContext";
 import { useWallet } from "../context/WalletContext";
 import { FREELANCE_CATEGORIES } from "../lib/tags";
@@ -31,8 +31,10 @@ import {
 
 export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const from = (location.state as any)?.from || "/dashboard";
   const { user, profile, saveOnboarding } = useAuth();
-  const { address, isConnected, openConnectModal, signMessage } = useWallet();
+  const { address, isConnected, isCorrectNetwork, switchNetwork, openConnectModal, signMessage } = useWallet();
 
   // Discord Sequential Pop-up Steps (1 to 5)
   // Step 1: Choose Realm / Role
@@ -82,9 +84,9 @@ export const OnboardingPage: React.FC = () => {
     return <Navigate to="/login" replace />;
   }
 
-  // If already onboarded, redirect immediately to Profile bento (after all hooks)
+  // If already onboarded, redirect immediately to intended destination
   if (profile?.isOnboarded) {
-    return <Navigate to="/profile" replace />;
+    return <Navigate to={from} replace />;
   }
 
   // Avatar Base64 Image Encoder
@@ -149,42 +151,33 @@ export const OnboardingPage: React.FC = () => {
 
   // Step 5: Web3 Binding Handler
   const handleWalletBinding = async () => {
-    if (!address) {
+    if (!address || !isConnected) {
       openConnectModal();
       return;
     }
 
+    if (!isCorrectNetwork) {
+      const switched = await switchNetwork();
+      if (!switched) {
+        setStepError("Please switch your wallet to MST Testnet (Chain ID 91562037).");
+        return;
+      }
+    }
+
     setIsSubmitting(true);
     setSignatureStatus("Requesting EIP-191 binding signature via wallet...");
+    setStepError(null);
 
     try {
-      // 1. Fetch nonce from server
-      let nonce = `Zentrix Web3 Onboarding Binding\nWallet: ${address}\nTime: ${Date.now()}`;
-      try {
-        const nonceRes = await fetch(`/api/auth/nonce?address=${address}`);
-        if (nonceRes.ok) {
-          const nonceData = await nonceRes.json();
-          if (nonceData.nonce) nonce = nonceData.nonce;
-        }
-      } catch {}
+      // 1. Prepare deterministic EIP-191 binding message
+      const nonce = `Zentrix Web3 Onboarding Binding\nWallet: ${address}\nUID: ${user.uid}\nNetwork: MST Testnet (Chain ID 91562037)\nTimestamp: ${Date.now()}`;
 
       // 2. Request user signature in BridgeKey or connected wallet
-      const sig = await signMessage(nonce);
-
-      setSignatureStatus("Verifying cryptographic signature on-chain...");
-
-      // 3. Verify on server (non-blocking)
-      try {
-        await fetch("/api/auth/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ address, signature: sig, message: nonce }),
-        });
-      } catch {}
+      await signMessage(nonce);
 
       setSignatureStatus("Verified! Anchoring your credentials on MST Testnet...");
 
-      // 4. Save profile to Firebase & Local Cache
+      // 3. Save profile to Firebase & Local Cache
       await saveOnboarding(
         {
           name,
@@ -203,11 +196,15 @@ export const OnboardingPage: React.FC = () => {
 
       setIsSuccess(true);
       setTimeout(() => {
-        navigate("/profile");
+        navigate(from, { replace: true });
       }, 1200);
     } catch (err: any) {
       console.error("Binding failed:", err);
-      setStepError(err?.message || "Failed to bind wallet. Please check BridgeKey confirmation and try again.");
+      if (err?.code === 4001 || err?.message?.includes("rejected") || err?.message?.includes("User denied")) {
+        setStepError("Signature request cancelled. Please sign the confirmation in your wallet to complete onboarding.");
+      } else {
+        setStepError(err?.message || "Failed to bind wallet. Please check BridgeKey confirmation and try again.");
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -791,15 +788,28 @@ export const OnboardingPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {!isConnected && (
+                    {!isConnected ? (
                       <button
                         type="button"
                         onClick={openConnectModal}
-                        className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-95 shadow-xs"
+                        className="px-4 py-2 rounded-xl text-xs font-bold text-white transition-opacity hover:opacity-95 shadow-xs cursor-pointer"
                         style={{ background: "var(--zx-primary)" }}
                       >
-                        Connect
+                        Connect Wallet
                       </button>
+                    ) : !isCorrectNetwork ? (
+                      <button
+                        type="button"
+                        onClick={switchNetwork}
+                        className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-50 text-amber-800 border border-amber-300 hover:bg-amber-100 transition-colors cursor-pointer"
+                      >
+                        Switch to MST
+                      </button>
+                    ) : (
+                      <div className="flex items-center gap-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>Connected</span>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -842,7 +852,7 @@ export const OnboardingPage: React.FC = () => {
                 {isSuccess && (
                   <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-mono flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span>Successfully verified! Redirecting to your Profile Bento...</span>
+                    <span>Successfully verified! Redirecting to your destination...</span>
                   </div>
                 )}
               </motion.div>
@@ -858,7 +868,7 @@ export const OnboardingPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentStep((prev) => (prev - 1) as any)}
-                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border hover:bg-slate-50 transition-colors"
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold border hover:bg-slate-50 transition-colors cursor-pointer"
                 style={{ borderColor: "var(--zx-border)" }}
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
@@ -872,7 +882,7 @@ export const OnboardingPage: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setCurrentStep((prev) => (prev + 1) as any)}
-                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-opacity shadow-xs hover:opacity-95"
+                className="inline-flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-xs font-bold text-white transition-opacity shadow-xs hover:opacity-95 cursor-pointer"
                 style={{ background: "var(--zx-primary)" }}
               >
                 <span>Continue</span>
@@ -881,15 +891,20 @@ export const OnboardingPage: React.FC = () => {
             ) : (
               <button
                 type="button"
-                disabled={isSubmitting || !isConnected}
+                disabled={isSubmitting}
                 onClick={handleWalletBinding}
-                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white transition-opacity shadow-md hover:opacity-95 disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl text-xs font-bold text-white transition-opacity shadow-md hover:opacity-95 disabled:opacity-50 cursor-pointer"
                 style={{ background: "var(--zx-primary)" }}
               >
                 {isSubmitting ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                     <span>Anchoring to MST...</span>
+                  </>
+                ) : !isConnected ? (
+                  <>
+                    <Wallet className="w-4 h-4" />
+                    <span>Connect MST Wallet</span>
                   </>
                 ) : (
                   <>

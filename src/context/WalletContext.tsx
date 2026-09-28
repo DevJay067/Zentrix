@@ -207,9 +207,34 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const signMessage = async (message: string): Promise<string> => {
-    if (!signer) throw new Error("Wallet not connected");
-    if (typeof signer.signMessage === "function") {
-      return await signer.signMessage(message);
+    if (!signer && !address) throw new Error("Wallet not connected");
+    if (signer && typeof signer.signMessage === "function") {
+      try {
+        return await signer.signMessage(message);
+      } catch (err: any) {
+        if (err?.code === 4001 || err?.message?.includes("rejected") || err?.message?.includes("User denied")) {
+          throw err;
+        }
+        console.warn("[Wallet] signer.signMessage failed, attempting raw personal_sign fallback:", err);
+      }
+    }
+    const ethereum = getInjectedProvider();
+    if (ethereum && ethereum.request && address) {
+      try {
+        return await ethereum.request({
+          method: "personal_sign",
+          params: [message, address],
+        });
+      } catch (err2: any) {
+        if (err2?.code === 4001 || err2?.message?.includes("rejected") || err2?.message?.includes("User denied")) {
+          throw err2;
+        }
+        const hexMsg = "0x" + Array.from(new TextEncoder().encode(message)).map((b) => b.toString(16).padStart(2, "0")).join("");
+        return await ethereum.request({
+          method: "personal_sign",
+          params: [hexMsg, address],
+        });
+      }
     }
     throw new Error("Signer does not support signMessage");
   };
