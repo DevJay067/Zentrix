@@ -1,0 +1,118 @@
+@import "./tokens.css";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: var(--zx-cream);
+    color: var(--zx-ink);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    padding: 0;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--zx-ink);
+    font-weight: 700;
+  }
+}
+
+/* Custom interactive utility classes conforming to theme tokens */
+.btn-primary {
+  background-color: var(--zx-primary-deep);
+  color: white;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-primary:hover {
+  filter: brightness(1.1);
+  transform: translateY(-1px);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--zx-primary-deep);
+  outline-offset: 2px;
+}
+
+.btn-secondary {
+  background-color: var(--zx-surface);
+  color: var(--zx-primary-deep);
+  border: 1px solid var(--zx-border);
+  padding: 0.625rem 1.25rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  transition: all 0.2s ease-in-out;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-secondary:hover {
+  background-color: var(--zx-surface-alt);
+}
+
+.card-surface {
+  background-color: var(--zx-surface);
+  border: 1px solid var(--zx-border);
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px -1px rgba(42, 15, 15, 0.05);
+}
+
+.card-surface-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-surface-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(42, 15, 15, 0.08);
+}
+
+.badge-success {
+  background-color: rgba(47, 125, 79, 0.15);
+  color: var(--zx-success);
+  border: 1px solid var(--zx-success);
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.badge-warning {
+  background-color: rgba(183, 121, 31, 0.15);
+  color: var(--zx-warning);
+  border: 1px solid var(--zx-warning);
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.badge-tier {
+  background-color: rgba(163, 29, 29, 0.15);
+  color: var(--zx-primary-deep);
+  border: 1px solid var(--zx-primary-deep);
+  border-radius: 9999px;
+  padding: 0.25rem 0.625rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}

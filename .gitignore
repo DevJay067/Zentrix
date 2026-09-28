@@ -9,8 +9,15 @@ lerna-debug.log*
 
 node_modules
 dist
-dist-ssr
 *.local
+.env
+.env.*
+.env.local
+.turbo
+.next
+contracts/artifacts
+contracts/cache
+contracts/typechain-types
 
 # Editor directories and files
 .vscode/*

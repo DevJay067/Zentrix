@@ -1,0 +1,19 @@
+:root {
+  /* Core Theme Tokens - Harness §3.7 */
+  --zx-primary: #D84040;
+  --zx-primary-deep: #A31D1D;
+  --zx-cream: #ECDCBF;
+
+  /* Derived Tokens */
+  --zx-ink: #2A0F0F;
+  --zx-muted: #6B4A4A;
+  --zx-surface: #F7EFDF;
+  --zx-surface-alt: #E8D8BA;
+  --zx-success: #2F7D4F;
+  --zx-warning: #B7791F;
+  --zx-danger: #A31D1D;
+  --zx-border: #DEC8A5;
+
+  /* Focus & Shadow */
+  --zx-focus-ring: rgba(163, 29, 29, 0.4);
+}
