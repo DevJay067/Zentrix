@@ -369,4 +369,5 @@ const server = Bun.serve({
   },
 });
 
-console.log(`Zentrix Backend Server running on http://localhost:${server.port}`);
+console.log(`Zentrix Backend Server running on http://localhost:${server.port} (local dev only)`);
+
