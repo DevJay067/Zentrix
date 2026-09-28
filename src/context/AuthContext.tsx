@@ -8,7 +8,8 @@ import {
   signOut,
 } from "firebase/auth";
 import { doc, getDoc, setDoc } from "firebase/firestore";
-import { auth, db, googleProvider } from "../lib/firebase";
+import { ref, get, set } from "firebase/database";
+import { auth, db, rtdb, googleProvider } from "../lib/firebase";
 
 export type UserRole = "client" | "freelancer";
 
@@ -53,18 +54,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setUser(fbUser);
       if (fbUser) {
+        // 1. Instant hydration from local cache
+        const cachedRaw = localStorage.getItem(`zx_user_profile_${fbUser.uid}`);
+        if (cachedRaw) {
+          try {
+            const cachedData = JSON.parse(cachedRaw) as UserProfile;
+            setProfile(cachedData);
+            setCurrentRole(cachedData.role || "freelancer");
+          } catch {}
+        }
+
+        let resolved = false;
+
+        // 2. Fetch from Firebase Realtime Database (active & connected)
         try {
-          const userDoc = await getDoc(doc(db, "users", fbUser.uid));
-          if (userDoc.exists()) {
-            const data = userDoc.data() as UserProfile;
+          const rtdbSnap = await get(ref(rtdb, `users/${fbUser.uid}`));
+          if (rtdbSnap.exists()) {
+            const data = rtdbSnap.val() as UserProfile;
             setProfile(data);
             setCurrentRole(data.role || "freelancer");
-          } else {
-            setProfile(null);
-            setCurrentRole(null);
+            localStorage.setItem(`zx_user_profile_${fbUser.uid}`, JSON.stringify(data));
+            resolved = true;
           }
         } catch (e) {
-          console.error("Error fetching user profile:", e);
+          console.warn("[Auth] RTDB read warning:", (e as any)?.message);
+        }
+
+        // 3. Fallback to Firestore with timeout if not found in RTDB
+        if (!resolved) {
+          try {
+            const userDocPromise = getDoc(doc(db, "users", fbUser.uid));
+            const timeoutPromise = new Promise<never>((_, reject) =>
+              setTimeout(() => reject(new Error("Firestore timeout")), 1500)
+            );
+            const userDoc = await Promise.race([userDocPromise, timeoutPromise]);
+            if (userDoc && userDoc.exists()) {
+              const data = userDoc.data() as UserProfile;
+              setProfile(data);
+              setCurrentRole(data.role || "freelancer");
+              localStorage.setItem(`zx_user_profile_${fbUser.uid}`, JSON.stringify(data));
+              resolved = true;
+            }
+          } catch (e) {
+            // Firestore may be disabled or offline on project growup-dec3f; silently handle
+          }
+        }
+
+        if (!resolved && !cachedRaw) {
+          setProfile(null);
+          setCurrentRole(null);
         }
       } else {
         setProfile(null);
@@ -143,14 +181,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       isWalletBound: true,
     };
 
-    // Save to users/{uid}
-    await setDoc(doc(db, "users", user.uid), newProfile, { merge: true });
+    // 1. Instant local persistence
+    localStorage.setItem(`zx_user_profile_${user.uid}`, JSON.stringify(newProfile));
+    localStorage.setItem(`zx_user_role_${user.uid}`, role);
 
-    // Save to role collection: clients/{uid} or freelancers/{uid}
-    const roleCollection = role === "client" ? "clients" : "freelancers";
-    await setDoc(
-      doc(db, roleCollection, user.uid),
-      {
+    // 2. Save to Firebase Realtime Database
+    try {
+      await set(ref(rtdb, `users/${user.uid}`), newProfile);
+      const roleCollection = role === "client" ? "clients" : "freelancers";
+      await set(ref(rtdb, `${roleCollection}/${user.uid}`), {
         public: {
           uid: user.uid,
           name: newProfile.name,
@@ -164,16 +203,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           email: newProfile.email,
           phone: newProfile.phone,
         },
-      },
-      { merge: true }
-    );
+      });
+      await set(ref(rtdb, `wallets/${walletAddress.toLowerCase()}`), {
+        uid: user.uid,
+        boundAt: Date.now(),
+      });
+    } catch (e) {
+      console.warn("[Auth] RTDB save warning:", (e as any)?.message);
+    }
 
-    // Save wallet mapping: wallets/{address} -> uid
-    await setDoc(
-      doc(db, "wallets", walletAddress.toLowerCase()),
-      { uid: user.uid, boundAt: Date.now() },
-      { merge: true }
-    );
+    // 3. Asynchronously attempt Firestore sync without blocking
+    try {
+      const fsPromise = Promise.all([
+        setDoc(doc(db, "users", user.uid), newProfile, { merge: true }),
+        setDoc(
+          doc(db, role === "client" ? "clients" : "freelancers", user.uid),
+          {
+            public: {
+              uid: user.uid,
+              name: newProfile.name,
+              designation: newProfile.designation,
+              organization: newProfile.organization,
+              industryTags: newProfile.industryTags,
+              expertise: newProfile.expertise,
+              walletAddress: newProfile.walletAddress,
+            },
+            private: {
+              email: newProfile.email,
+              phone: newProfile.phone,
+            },
+          },
+          { merge: true }
+        ),
+        setDoc(
+          doc(db, "wallets", walletAddress.toLowerCase()),
+          { uid: user.uid, boundAt: Date.now() },
+          { merge: true }
+        ),
+      ]);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Firestore timeout")), 1500)
+      );
+      await Promise.race([fsPromise, timeoutPromise]);
+    } catch (e) {
+      // Non-fatal if Firestore API is disabled or offline
+    }
 
     setProfile(newProfile);
     setCurrentRole(role);
@@ -181,14 +255,36 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const bindWallet = async (walletAddress: string) => {
     if (!user) throw new Error("User not logged in");
-    await setDoc(
-      doc(db, "users", user.uid),
-      { walletAddress: walletAddress.toLowerCase(), isWalletBound: true },
-      { merge: true }
-    );
+    const lowerAddress = walletAddress.toLowerCase();
+
+    // 1. Instant local persistence
     if (profile) {
-      setProfile({ ...profile, walletAddress: walletAddress.toLowerCase(), isWalletBound: true });
+      const updated = { ...profile, walletAddress: lowerAddress, isWalletBound: true };
+      localStorage.setItem(`zx_user_profile_${user.uid}`, JSON.stringify(updated));
+      setProfile(updated);
     }
+
+    // 2. Realtime Database save
+    try {
+      await set(ref(rtdb, `users/${user.uid}/walletAddress`), lowerAddress);
+      await set(ref(rtdb, `users/${user.uid}/isWalletBound`), true);
+      await set(ref(rtdb, `wallets/${lowerAddress}`), { uid: user.uid, boundAt: Date.now() });
+    } catch (e) {
+      console.warn("[Auth] RTDB bindWallet warning:", (e as any)?.message);
+    }
+
+    // 3. Firestore background sync
+    try {
+      const fsPromise = setDoc(
+        doc(db, "users", user.uid),
+        { walletAddress: lowerAddress, isWalletBound: true },
+        { merge: true }
+      );
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Firestore timeout")), 1500)
+      );
+      await Promise.race([fsPromise, timeoutPromise]);
+    } catch {}
   };
 
   return (
