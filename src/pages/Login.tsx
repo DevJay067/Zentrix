@@ -78,13 +78,21 @@ export const LoginPage: React.FC = () => {
   };
 
   const handleGoogleSignIn = async () => {
-    setLoading(true);
     setError(null);
     try {
-      await loginWithGoogle();
-      navigate(from, { replace: true });
+      setLoading(true);
+      const user = await loginWithGoogle();
+      if (user) {
+        navigate(from, { replace: true });
+      }
     } catch (err: any) {
-      setError(err?.message || "Google sign-in cancelled or failed.");
+      if (err?.code === "auth/popup-blocked") {
+        setError("Popup was blocked by your browser. Redirecting you to sign in with Google...");
+      } else if (err?.code === "auth/popup-closed-by-user") {
+        setError("Sign-in popup closed before completion. Please try again.");
+      } else {
+        setError(err?.message || "Google sign-in cancelled or failed.");
+      }
     } finally {
       setLoading(false);
     }

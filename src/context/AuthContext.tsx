@@ -3,6 +3,8 @@ import {
   User as FirebaseUser,
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
@@ -139,15 +141,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const loginWithGoogle = async () => {
-    setLoading(true);
     try {
       const res = await signInWithPopup(auth, googleProvider);
       return res.user;
-    } catch (e) {
+    } catch (e: any) {
+      if (e?.code === "auth/popup-blocked" || e?.code === "auth/popup-closed-by-user") {
+        console.warn("Popup blocked or closed, falling back to redirect:", e);
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return null;
+        } catch (redirectErr) {
+          console.error("Google sign in redirect failed:", redirectErr);
+          throw redirectErr;
+        }
+      }
       console.error("Google sign in failed:", e);
       throw e;
-    } finally {
-      setLoading(false);
     }
   };
 
