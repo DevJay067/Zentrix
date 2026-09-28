@@ -220,6 +220,7 @@ export const MarketplacePage: React.FC = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
   const [applyProposal, setApplyProposal] = useState("");
+  const [actionFeedback, setActionFeedback] = useState<{ type: "success" | "error" | "info"; msg: string } | null>(null);
 
   // New Gig Form State (Choosable tags)
   const [newTitle, setNewTitle] = useState("");
@@ -282,7 +283,10 @@ export const MarketplacePage: React.FC = () => {
     setIsCreateModalOpen(false);
     setNewTitle("");
     setNewDesc("");
-    alert("Gig created! Depositing tMSTC into ZentrixEscrow on MST Testnet...");
+    setActionFeedback({
+      type: "success",
+      msg: `Gig "${created.title}" created! Milestones ready for on-chain Escrow assignment on MST Testnet.`,
+    });
   };
 
   const handleApply = (gig: GigItem) => {
@@ -295,13 +299,39 @@ export const MarketplacePage: React.FC = () => {
   };
 
   const submitApplication = () => {
-    alert("Application proposal submitted! Client can now review and assign you to the Escrow contract.");
     setIsApplyModalOpen(false);
     setApplyProposal("");
+    setActionFeedback({
+      type: "success",
+      msg: "Application proposal submitted! Client can now review milestones and assign your address in ZentrixEscrow.",
+    });
   };
 
   return (
     <div className="zx-marketplace-page space-y-8">
+      {/* Action Feedback Banner */}
+      {actionFeedback && (
+        <div
+          className="flex items-center justify-between p-4 rounded-2xl text-xs font-semibold shadow-sm animate-in fade-in duration-200"
+          style={{
+            background: actionFeedback.type === "success" ? "rgba(22, 101, 52, 0.08)" : "rgba(163, 4, 2, 0.08)",
+            border: `1px solid ${actionFeedback.type === "success" ? "rgb(22, 101, 52)" : "var(--zx-primary)"}`,
+            color: actionFeedback.type === "success" ? "rgb(20, 83, 45)" : "var(--zx-primary-deep)",
+          }}
+        >
+          <div className="flex items-center gap-2">
+            <CheckCircle className="w-4 h-4 shrink-0" />
+            <span>{actionFeedback.msg}</span>
+          </div>
+          <button
+            onClick={() => setActionFeedback(null)}
+            className="text-xs font-bold underline hover:opacity-80 ml-4"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
       {/* ── Interactive Escrow Flow Infographic ── */}
       <EscrowFlowInfographic />
 

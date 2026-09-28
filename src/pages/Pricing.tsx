@@ -11,12 +11,13 @@ import {
   AlertCircle,
   RefreshCw,
   Sparkles,
-  Star,
+  Award,
+  Calendar,
+  Lock,
 } from "lucide-react";
 import { useWallet } from "../context/WalletContext";
 import { CONTRACT_ADDRESSES, CONTRACT_ABIS } from "../contracts";
-
-// ─── Types ────────────────────────────────────────────────────────────────────
+import { getCachedNFTAssets, scanNFTAssets } from "../lib/nftScanner";
 
 type TxStage = "idle" | "pending" | "confirmed" | "error";
 
@@ -26,116 +27,41 @@ interface TierData {
 }
 
 interface ChainState {
-  userTier: number;        // 0=None,1=Scout,2=Builder,3=Architect
-  prices: TierData[];      // index 0 unused, 1=Scout, 2=Builder, 3=Architect
+  userTier: number;        // 0=None, 1=Pro, 2=Enterprise
+  expiresAt: number;       // Unix timestamp in seconds
+  tokenId: string;         // Token ID string
+  prices: { [tierId: number]: TierData };
   loading: boolean;
   error: string | null;
 }
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
-const SkeletonCard: React.FC = () => (
-  <div
-    className="rounded-3xl p-6 flex flex-col gap-5 animate-pulse"
-    style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
-  >
-    <div className="flex flex-col gap-2">
-      <div className="h-3 w-16 rounded-full" style={{ background: "var(--zx-border)" }} />
-      <div className="h-6 w-28 rounded-xl" style={{ background: "var(--zx-border)" }} />
-      <div className="h-3 w-40 rounded-full" style={{ background: "var(--zx-border)" }} />
-    </div>
-    <div className="h-10 w-24 rounded-xl" style={{ background: "var(--zx-border)" }} />
-    <div className="flex flex-col gap-2 mt-2">
-      {[1, 2, 3].map((i) => (
-        <div key={i} className="h-3 w-full rounded-full" style={{ background: "var(--zx-border)" }} />
-      ))}
-    </div>
-    <div className="h-10 w-full rounded-2xl mt-auto" style={{ background: "var(--zx-border)" }} />
-  </div>
-);
-
-// ─── Tier feature sets ────────────────────────────────────────────────────────
-
-const TIER_META = [
-  null, // tier 0 placeholder
-  {
-    id: 1,
-    name: "Scout",
-    tagline: "For active independents",
-    Icon: Zap,
-    accent: "var(--zx-primary)",
-    features: [
-      "5 Sarvam AI queries / day",
-      "Non-transferable soulbound NFT",
-      "Priority AI match scoring",
-      "Scout badge on talent search",
-      "30-day pass validity",
-    ],
-  },
-  {
-    id: 2,
-    name: "Builder",
-    tagline: "For growing teams & serious freelancers",
-    Icon: ShieldCheck,
-    accent: "var(--zx-primary-deep)",
-    features: [
-      "15 Sarvam AI queries / day",
-      "Non-transferable soulbound NFT",
-      "Enhanced match throughput",
-      "Builder profile badge",
-      "30-day pass validity",
-      "Priority dispute resolution",
-    ],
-  },
-  {
-    id: 3,
-    name: "Architect",
-    tagline: "For agencies & enterprise recruiting",
-    Icon: Crown,
-    accent: "var(--zx-warning)",
-    features: [
-      "Unlimited AI queries / day",
-      "Non-transferable soulbound NFT",
-      "Max-throughput AI processing",
-      "Architect enterprise badge",
-      "30-day pass validity",
-      "Dedicated dispute arbitration",
-      "Early access to new features",
-    ],
-  },
-];
-
-// ─── Main Component ────────────────────────────────────────────────────────────
-
 export const PricingPage: React.FC = () => {
-  const { address, signer, provider, isConnected, connectWallet, switchNetwork, isCorrectNetwork, openConnectModal } =
+  const { address, signer, provider, isConnected, isCorrectNetwork, switchNetwork, openConnectModal } =
     useWallet();
 
+  const cached = getCachedNFTAssets(address);
   const [chain, setChain] = useState<ChainState>({
-    userTier: 0,
-    prices: [
-      { priceWei: 0n, priceEth: "0" },
-      { priceWei: 0n, priceEth: "—" },
-      { priceWei: 0n, priceEth: "—" },
-      { priceWei: 0n, priceEth: "—" },
-    ],
-    loading: true,
+    userTier: cached.passTier,
+    expiresAt: cached.passExpiresAt || 0,
+    tokenId: cached.passTokenId || "0",
+    prices: {
+      0: { priceWei: 0n, priceEth: "0" },
+      1: { priceWei: ethers.parseEther("5"), priceEth: "5.00" },
+      2: { priceWei: ethers.parseEther("15"), priceEth: "15.00" },
+    },
+    loading: false,
     error: null,
   });
 
-  // Per-tier tx state
   const [txTier, setTxTier] = useState<number | null>(null);
   const [txStage, setTxStage] = useState<TxStage>("idle");
   const [txHash, setTxHash] = useState<string | null>(null);
   const [txError, setTxError] = useState<string | null>(null);
-  const [confirmedTier, setConfirmedTier] = useState<number | null>(null);
 
-  // ── Fetch on-chain data ────────────────────────────────────────────────────
-
+  // ── Fetch on-chain data ──────────────────────────────────────────────────
   const fetchChainData = useCallback(async () => {
-    setChain((s) => ({ ...s, loading: true, error: null }));
+    setChain((s) => ({ ...s, error: null }));
     try {
-      // Use provider if connected, else JsonRpcProvider for read-only
       const rpc =
         provider ??
         new ethers.JsonRpcProvider("https://testnetrpc.mstblockchain.com");
@@ -146,13 +72,23 @@ export const PricingPage: React.FC = () => {
         rpc
       );
 
-      // Fetch all 3 tier prices in parallel + user's current tier
-      const [p1, p2, p3, userTierRaw] = await Promise.all([
-        passContract.tierPrices(1),
-        passContract.tierPrices(2),
-        passContract.tierPrices(3),
-        address ? passContract.tierOf(address) : Promise.resolve(0n),
+      // Fetch prices for Tier 1 (Pro) and Tier 2 (Enterprise)
+      const [p1, p2] = await Promise.all([
+        passContract.tierPrices(1).catch(() => ethers.parseEther("5")),
+        passContract.tierPrices(2).catch(() => ethers.parseEther("15")),
       ]);
+
+      let userTier = 0;
+      let expiresAt = 0;
+      let tokenId = "0";
+
+      if (address) {
+        // Deep scan MST blockchain for user pass & token assets
+        const scan = await scanNFTAssets(address, rpc);
+        userTier = scan.passTier;
+        expiresAt = scan.passExpiresAt || 0;
+        tokenId = scan.passTokenId || "0";
+      }
 
       const toPair = (wei: bigint): TierData => ({
         priceWei: wei,
@@ -160,13 +96,14 @@ export const PricingPage: React.FC = () => {
       });
 
       setChain({
-        userTier: Number(userTierRaw),
-        prices: [
-          { priceWei: 0n, priceEth: "0" }, // tier 0 sentinel
-          toPair(p1),
-          toPair(p2),
-          toPair(p3),
-        ],
+        userTier,
+        expiresAt,
+        tokenId,
+        prices: {
+          0: { priceWei: 0n, priceEth: "0" },
+          1: toPair(p1),
+          2: toPair(p2),
+        },
         loading: false,
         error: null,
       });
@@ -174,7 +111,7 @@ export const PricingPage: React.FC = () => {
       setChain((s) => ({
         ...s,
         loading: false,
-        error: "Failed to load on-chain pricing. " + (err?.message ?? ""),
+        error: "Unable to query MST Testnet pass contract: " + (err?.message ?? "Network error"),
       }));
     }
   }, [address, provider]);
@@ -183,10 +120,36 @@ export const PricingPage: React.FC = () => {
     fetchChainData();
   }, [fetchChainData]);
 
-  // ── Buy handler ────────────────────────────────────────────────────────────
+  // Periodic background re-scan to keep assets fresh on reload and live updates
+  useEffect(() => {
+    if (address) {
+      scanNFTAssets(address, provider);
+      const interval = setInterval(() => {
+        scanNFTAssets(address, provider);
+      }, 12000);
+      return () => clearInterval(interval);
+    }
+  }, [address, provider]);
 
+  useEffect(() => {
+    const onScanned = (e: any) => {
+      const d = e.detail;
+      if (d) {
+        setChain((prev) => ({
+          ...prev,
+          userTier: d.passTier > 0 ? d.passTier : prev.userTier,
+          expiresAt: d.passExpiresAt || prev.expiresAt,
+          tokenId: d.passTokenId || prev.tokenId,
+        }));
+      }
+    };
+    window.addEventListener("zx_nft_scanned", onScanned);
+    return () => window.removeEventListener("zx_nft_scanned", onScanned);
+  }, []);
+
+  // ── Real on-chain buy handler ────────────────────────────────────────────
   const handleBuy = async (tierId: number) => {
-    if (!isConnected) {
+    if (!isConnected || !address) {
       openConnectModal();
       return;
     }
@@ -210,446 +173,553 @@ export const PricingPage: React.FC = () => {
         CONTRACT_ABIS.ZentrixPass,
         signer
       );
+
+      // Prompt BridgeKey wallet transaction
       const tx = await passContract.buy(tierId, { value: price.priceWei });
       setTxHash(tx.hash);
+
+      // Wait for block confirmation on MST Testnet
       await tx.wait();
       setTxStage("confirmed");
-      setConfirmedTier(tierId);
-      // Refresh tier after buy
+
+      // Deep scan and refresh on-chain state
+      await scanNFTAssets(address, signer);
       await fetchChainData();
     } catch (err: any) {
       setTxStage("error");
-      setTxError(err?.reason ?? err?.message ?? "Transaction failed or rejected.");
+      setTxError(err?.reason ?? err?.message ?? "Transaction was rejected or failed on chain.");
     } finally {
       setTxTier(null);
     }
   };
 
-  // ── Derived state ──────────────────────────────────────────────────────────
-
-  const isBuying = (id: number) => txTier === id;
-  const isCurrentTier = (id: number) => chain.userTier === id;
-
-  // ─── Render ────────────────────────────────────────────────────────────────
+  const calculateDaysLeft = (expiry: number) => {
+    if (!expiry) return null;
+    const now = Math.floor(Date.now() / 1000);
+    const diff = expiry - now;
+    if (diff <= 0) return "Expired";
+    const days = Math.floor(diff / 86400);
+    return `${days} days remaining`;
+  };
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ background: "var(--zx-surface)" }}
-    >
-      {/* ── Hero clean white banner ─────────────────────────────────────────────── */}
-      <div
-        className="rounded-3xl mx-4 mt-4 mb-8 p-8 sm:p-12 relative overflow-hidden shadow-sm"
-        style={{
-          background: "linear-gradient(180deg, var(--zx-surface) 0%, var(--zx-surface-alt) 100%)",
-          border: "1px solid var(--zx-border)",
-        }}
-      >
-        {/* Subtle decorative glow */}
-        <div
-          className="absolute -top-12 -right-12 w-56 h-56 rounded-full opacity-15"
-          style={{ background: "var(--zx-primary)", filter: "blur(48px)" }}
-        />
-        <div
-          className="absolute bottom-0 left-1/3 w-40 h-40 rounded-full opacity-10"
-          style={{ background: "var(--zx-warning)", filter: "blur(40px)" }}
-        />
-
-        <div className="relative z-10 max-w-2xl">
+    <div className="zx-pricing-page min-h-screen py-8 px-4 sm:px-6 max-w-7xl mx-auto space-y-8">
+      {/* ── Top Hero ──────────────────────────────────────────────────────── */}
+      <div className="zx-pricing-hero text-center max-w-3xl mx-auto space-y-4">
+        <div className="zx-pricing-badge-wrap inline-flex items-center">
           <div
-            className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-widest mb-5"
+            className="zx-pricing-badge inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider"
             style={{
-              background: "rgba(216,64,64,0.08)",
+              background: "rgba(163, 4, 2, 0.08)",
               color: "var(--zx-primary-deep)",
-              border: "1px solid rgba(216,64,64,0.2)",
+              border: "1px solid rgba(163, 4, 2, 0.2)",
             }}
           >
-            <Sparkles className="w-3.5 h-3.5 text-[var(--zx-primary)]" />
-            <span>Soulbound NFT Access Passes</span>
+            <Sparkles className="zx-badge-icon w-3.5 h-3.5 text-[var(--zx-primary)]" />
+            <span className="zx-badge-text">Non-Transferable Soulbound NFTs</span>
           </div>
-          <h1 className="text-3xl sm:text-5xl font-black leading-tight mb-4 text-[var(--zx-ink)]">
-            ZentrixPass
-            <br />
-            <span style={{ color: "var(--zx-primary)" }}>Subscription Tiers</span>
-          </h1>
-          <p className="text-sm leading-relaxed text-[var(--zx-muted)]">
-            Non-transferable ERC-721 access passes granting daily AI query allowances for the Sarvam
-            matchmaking engine. Prices are fetched live from the ZentrixPass smart contract.
-          </p>
         </div>
 
-        {/* Active tier status chip */}
-        {isConnected && !chain.loading && (
-          <div
-            className="absolute top-6 right-6 sm:top-8 sm:right-8 px-4 py-2 rounded-2xl text-xs font-bold shadow-xs"
-            style={{
-              background: chain.userTier > 0 ? "rgba(47,125,79,0.1)" : "var(--zx-surface-alt)",
-              border: `1px solid ${chain.userTier > 0 ? "var(--zx-success)" : "var(--zx-border)"}`,
-              color: chain.userTier > 0 ? "var(--zx-success)" : "var(--zx-muted)",
-            }}
-          >
-            {chain.userTier > 0
-              ? `✦ Active: ${TIER_META[chain.userTier]?.name} Pass`
-              : "No Active Pass"}
-          </div>
-        )}
+        <h1 className="zx-pricing-title text-3xl sm:text-5xl font-black text-[var(--zx-ink)] tracking-tight">
+          ZentrixPass <span className="zx-pricing-title-highlight" style={{ color: "var(--zx-primary)" }}>Subscription Plans</span>
+        </h1>
+
+        <p className="zx-pricing-subtitle text-sm sm:text-base text-slate-700 leading-relaxed font-medium">
+          Choose a tier to mint an ERC-721 Soulbound Access Pass on MST Testnet. Gain daily Sarvam AI queries,
+          reputation multipliers, and prioritized milestone matchmaking.
+        </p>
       </div>
 
-      {/* ── Error banner ─────────────────────────────────────────────────── */}
-      {chain.error && (
-        <div
-          className="mx-4 mb-6 p-4 rounded-2xl flex items-start gap-3 text-sm"
-          style={{
-            background: "rgba(163,29,29,0.08)",
-            border: "1px solid var(--zx-danger)",
-            color: "var(--zx-danger)",
-          }}
-        >
-          <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-          <div className="flex-1">
-            <span className="font-semibold">On-chain read error: </span>
-            {chain.error}
-          </div>
-          <button
-            onClick={fetchChainData}
-            className="shrink-0 flex items-center gap-1.5 font-bold text-xs px-3 py-1.5 rounded-xl"
-            style={{ background: "var(--zx-danger)", color: "var(--zx-cream)" }}
-          >
-            <RefreshCw className="w-3 h-3" />
-            Retry
-          </button>
-        </div>
-      )}
-
-      {/* ── Tx status banner ─────────────────────────────────────────────── */}
+      {/* ── Transaction Status Notices (No Alert Fallbacks) ────────────────── */}
       {txStage === "pending" && txHash && (
         <div
-          className="mx-4 mb-6 p-4 rounded-2xl flex items-center justify-between text-xs"
+          className="zx-tx-banner zx-tx-pending p-4 rounded-2xl flex items-center justify-between text-xs font-semibold shadow-sm animate-in fade-in duration-200"
           style={{
-            background: "rgba(183,121,31,0.08)",
-            border: "1px solid var(--zx-warning)",
+            background: "rgba(234, 88, 12, 0.08)",
+            border: "1px solid rgb(234, 88, 12)",
+            color: "rgb(194, 65, 12)",
           }}
         >
-          <div className="flex items-center gap-2.5" style={{ color: "var(--zx-warning)" }}>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span className="font-semibold">
-              Pending — {txHash.slice(0, 10)}...{txHash.slice(-8)}
-            </span>
+          <div className="zx-tx-status flex items-center gap-2.5">
+            <Loader2 className="zx-tx-spinner w-4 h-4 animate-spin text-orange-600" />
+            <span className="zx-tx-message">BridgeKey transaction submitted — awaiting block confirmation on MST Testnet...</span>
           </div>
           <a
             href={`https://testnet.mstscan.com/tx/${txHash}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 font-bold hover:underline"
-            style={{ color: "var(--zx-warning)" }}
+            className="zx-tx-explorer-link flex items-center gap-1 font-bold hover:underline"
           >
-            MSTScan <ExternalLink className="w-3 h-3" />
+            <span>MSTScan</span> <ExternalLink className="zx-tx-icon w-3.5 h-3.5" />
           </a>
         </div>
       )}
 
       {txStage === "confirmed" && txHash && (
         <div
-          className="mx-4 mb-6 p-4 rounded-2xl flex items-center justify-between text-xs"
+          className="zx-tx-banner zx-tx-confirmed p-4 rounded-2xl flex items-center justify-between text-xs font-semibold shadow-sm animate-in fade-in duration-200"
           style={{
-            background: "rgba(47,125,79,0.08)",
-            border: "1px solid var(--zx-success)",
+            background: "rgba(22, 101, 52, 0.08)",
+            border: "1px solid rgb(22, 101, 52)",
+            color: "rgb(20, 83, 45)",
           }}
         >
-          <div className="flex items-center gap-2.5" style={{ color: "var(--zx-success)" }}>
-            <Check className="w-4 h-4" />
-            <span className="font-semibold">
-              Confirmed — {TIER_META[confirmedTier ?? 1]?.name} Pass minted!
-            </span>
+          <div className="zx-tx-status flex items-center gap-2.5">
+            <Check className="zx-tx-check-icon w-4 h-4 text-emerald-600" />
+            <span className="zx-tx-message">Success! Your Soulbound Pass has been minted and permanently bound to your wallet.</span>
           </div>
           <a
             href={`https://testnet.mstscan.com/tx/${txHash}`}
             target="_blank"
             rel="noreferrer"
-            className="flex items-center gap-1 font-bold hover:underline"
-            style={{ color: "var(--zx-success)" }}
+            className="zx-tx-explorer-link flex items-center gap-1 font-bold hover:underline"
           >
-            View on MSTScan <ExternalLink className="w-3 h-3" />
+            <span>View on MSTScan</span> <ExternalLink className="zx-tx-icon w-3.5 h-3.5" />
           </a>
         </div>
       )}
 
       {txStage === "error" && txError && (
         <div
-          className="mx-4 mb-6 p-4 rounded-2xl text-xs"
+          className="zx-tx-banner zx-tx-error p-4 rounded-2xl flex items-start justify-between text-xs font-semibold shadow-sm animate-in fade-in duration-200"
           style={{
-            background: "rgba(163,29,29,0.08)",
-            border: "1px solid var(--zx-danger)",
-            color: "var(--zx-danger)",
+            background: "rgba(163, 4, 2, 0.08)",
+            border: "1px solid var(--zx-primary)",
+            color: "var(--zx-primary-deep)",
           }}
         >
-          <span className="font-semibold">Transaction failed: </span>{txError}
+          <div className="zx-tx-status flex items-center gap-2">
+            <AlertCircle className="zx-tx-alert-icon w-4 h-4 shrink-0" />
+            <span className="zx-tx-message">Transaction error: {txError}</span>
+          </div>
+          <button
+            onClick={() => setTxStage("idle")}
+            className="zx-tx-dismiss-btn text-xs underline hover:opacity-80 ml-4 font-bold cursor-pointer"
+          >
+            Dismiss
+          </button>
         </div>
       )}
 
-      {/* ── Bento Tier Cards ──────────────────────────────────────────────── */}
-      <div className="px-4 pb-12">
-        {/* Asymmetric bento: 5-col grid on desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-
-          {/* ── Free tier — wide left cell ─────────────────────────────── */}
-          <div
-            className="md:col-span-2 rounded-3xl p-7 flex flex-col justify-between"
-            style={{
-              background: "var(--zx-surface-alt)",
-              border: "1px solid var(--zx-border)",
-            }}
+      {chain.error && (
+        <div
+          className="zx-error-banner p-4 rounded-2xl flex items-center justify-between text-xs font-medium"
+          style={{
+            background: "rgba(163, 4, 2, 0.06)",
+            border: "1px solid rgba(163, 4, 2, 0.2)",
+            color: "var(--zx-primary-deep)",
+          }}
+        >
+          <span className="zx-error-message">{chain.error}</span>
+          <button
+            onClick={fetchChainData}
+            className="zx-retry-btn flex items-center gap-1 font-bold underline hover:opacity-80 cursor-pointer"
           >
-            <div className="space-y-4">
-              <div
-                className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                style={{ background: "var(--zx-border)" }}
-              >
-                <Star className="w-5 h-5" style={{ color: "var(--zx-muted)" }} />
-              </div>
-              <div>
-                <div
-                  className="text-[10px] font-bold uppercase tracking-widest mb-1"
-                  style={{ color: "var(--zx-muted)" }}
-                >
-                  Default
-                </div>
-                <h3 className="text-2xl font-black" style={{ color: "var(--zx-ink)" }}>
-                  Free Tier
-                </h3>
-                <p className="text-xs mt-1" style={{ color: "var(--zx-muted)" }}>
-                  Available to every connected wallet with no purchase required.
-                </p>
-              </div>
+            <RefreshCw className="zx-retry-icon w-3.5 h-3.5" /> <span>Retry</span>
+          </button>
+        </div>
+      )}
 
-              <div className="flex items-baseline gap-1 mt-2">
-                <span className="text-4xl font-black font-mono" style={{ color: "var(--zx-ink)" }}>
-                  0
-                </span>
-                <span className="text-sm font-mono" style={{ color: "var(--zx-muted)" }}>
-                  tMSTC
-                </span>
-              </div>
+      {/* ── BIG PREVIEW OF CURRENT NFT (Centered directly above 3 columns) ─── */}
+      {isConnected && chain.userTier > 0 && (
+        <div className="zx-current-nft-preview zx-nft-preview-card  mx-auto p-6 sm:p-8 rounded-3xl border shadow-xl text-center relative overflow-hidden bg-white/95 backdrop-blur-xl">
+          <div
+            className="zx-nft-glow zx-nft-glow-top absolute -top-16 -right-16 w-44 h-44 rounded-full opacity-20 pointer-events-none"
+            style={{ background: "var(--zx-primary)", filter: "blur(40px)" }}
+          />
+          <div
+            className="zx-nft-glow zx-nft-glow-bottom absolute -bottom-16 -left-16 w-44 h-44 rounded-full opacity-15 pointer-events-none"
+            style={{ background: "var(--zx-primary-deep)", filter: "blur(40px)" }}
+          />
 
-              <ul className="space-y-2 pt-3" style={{ borderTop: "1px solid var(--zx-border)" }}>
-                {["2 AI queries / day", "Full marketplace browsing", "Standard match scoring"].map((f) => (
-                  <li key={f} className="flex items-center gap-2 text-xs" style={{ color: "var(--zx-ink)" }}>
-                    <Check className="w-3.5 h-3.5" style={{ color: "var(--zx-success)" }} />
-                    {f}
-                  </li>
-                ))}
-              </ul>
+          <div className="zx-nft-preview-content relative z-10 space-y-4">
+            <div className="zx-nft-status-pill inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+              <span className="zx-nft-status-dot w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="zx-nft-status-text">Active Soulbound NFT Token</span>
             </div>
 
-            <button
-              disabled
-              className="mt-6 w-full py-3 rounded-2xl text-xs font-bold cursor-not-allowed"
-              style={{
-                background: "var(--zx-border)",
-                color: "var(--zx-muted)",
-              }}
-            >
-              Active by default
-            </button>
+            <h2 className="zx-nft-title text-2xl font-black text-[var(--zx-ink)]">
+              {chain.userTier === 1 ? "Pro Pass NFT" : "Enterprise Pass NFT"}
+            </h2>
+
+            {/* Big NFT Visual - Unlocked in Full Original Color */}
+            <div className="zx-nft-visual-wrapper relative mx-auto rounded-3xl overflow-hidden border-2 border-emerald-400/60 shadow-2xl bg-black group">
+              <img
+                src={chain.userTier === 1 ? "/1.gif" : "/2.gif"}
+                alt="Active Pass NFT"
+                className="zx-nft-visual-img w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+              />
+              <div className="zx-nft-token-pill absolute top-2 right-2 px-2.5 py-0.5 rounded-full bg-black/75 backdrop-blur-md text-[10px] font-mono font-bold text-white border border-white/20">
+                #{chain.tokenId}
+              </div>
+            </div>
+
+            {/* Metadata Badges */}
+            <div className="zx-nft-meta-badges flex flex-wrap items-center justify-center gap-3 pt-2 text-xs">
+              <div className="zx-nft-meta-badge zx-badge-soulbound flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-100 text-slate-800 font-semibold border border-slate-200">
+                <Lock className="zx-meta-icon w-3.5 h-3.5 text-slate-500" />
+                <span>Non-Transferable</span>
+              </div>
+
+              {chain.expiresAt > 0 && (
+                <div className="zx-nft-meta-badge zx-badge-expiry flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-800 font-semibold border border-amber-200">
+                  <Calendar className="zx-meta-icon w-3.5 h-3.5 text-amber-600" />
+                  <span>{calculateDaysLeft(chain.expiresAt)}</span>
+                </div>
+              )}
+
+              <a
+                href={`https://testnet.mstscan.com/token/${CONTRACT_ADDRESSES.ZentrixPass}?a=${chain.tokenId}`}
+                target="_blank"
+                rel="noreferrer"
+                className="zx-nft-explorer-link flex items-center gap-1 px-3 py-1.5 rounded-xl bg-red-50 text-[var(--zx-primary-deep)] font-semibold border border-red-200 hover:bg-red-100 transition-colors"
+              >
+                <span>MSTScan NFT Details</span>
+                <ExternalLink className="zx-explorer-icon w-3 h-3" />
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── THREE COLUMNAR CARDS: Free, Pro, Enterprise ───────────────────── */}
+      <div className="zx-pricing-grid grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 items-stretch pt-2">
+        {/* ── 1. FREE PLAN ──────────────────────────────────────────────── */}
+        <div
+          className="zx-pricing-card zx-card-free rounded-3xl p-6 sm:p-8 flex flex-col justify-between border shadow-sm transition-all duration-300 hover:shadow-md"
+          style={{
+            background: "rgba(255, 255, 255, 0.95)",
+            borderColor: "var(--zx-border)",
+          }}
+        >
+          <div className="zx-card-body space-y-6">
+            <div className="zx-card-header flex items-center justify-between">
+              <span className="zx-tier-badge zx-tier-badge-free text-xs font-bold uppercase tracking-wider text-slate-500 bg-slate-100 px-3 py-1 rounded-full">
+                Starter
+              </span>
+              <Award className="zx-tier-icon w-5 h-5 text-slate-400" />
+            </div>
+
+            <div className="zx-card-title-group">
+              <h3 className="zx-card-title text-2xl font-black text-[var(--zx-ink)]">Free Plan</h3>
+              <p className="zx-card-desc text-xs text-slate-600 mt-1 font-medium leading-relaxed">
+                Standard access for independent talent and clients beginning on-chain milestones.
+              </p>
+            </div>
+
+            {/* Price */}
+            <div className="zx-price-group flex items-baseline gap-1.5">
+              <span className="zx-price-amount text-4xl sm:text-5xl font-black font-mono text-[var(--zx-ink)]">0</span>
+              <span className="zx-price-currency text-sm font-bold text-slate-500">tMSTC</span>
+            </div>
+
+            {/* Feature List */}
+            <div className="zx-features-section pt-4 border-t border-slate-100 space-y-3">
+              <div className="zx-features-heading text-xs font-bold text-slate-900 uppercase tracking-wide">Included:</div>
+              <ul className="zx-features-list space-y-2.5 text-xs text-slate-700 font-medium">
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">2 Sarvam AI queries per day</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">Full marketplace browsing & gig submissions</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">Non-custodial milestone escrow protection</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">Public reputation NFT verification</span>
+                </li>
+              </ul>
+            </div>
           </div>
 
-          {/* ── Paid tiers — right 3 cells stacked ─────────────────────── */}
-          <div className="md:col-span-3 flex flex-col gap-4">
-            {chain.loading
-              ? [1, 2, 3].map((i) => <SkeletonCard key={i} />)
-              : TIER_META.slice(1).map((meta) => {
-                  if (!meta) return null;
-                  const { id, name, tagline, Icon, accent, features } = meta;
-                  const price = chain.prices[id];
-                  const current = isCurrentTier(id);
-                  const buying = isBuying(id);
-                  const isFeatured = id === 2; // Builder is hero
-
-                  return (
-                    <div
-                      key={id}
-                      className="rounded-3xl p-7 flex flex-col sm:flex-row gap-6 justify-between relative overflow-hidden transition-all duration-300"
-                      style={{
-                        background: "var(--zx-surface)",
-                        border: current
-                          ? `2px solid ${accent}`
-                          : isFeatured
-                          ? "2px solid var(--zx-primary)"
-                          : "1px solid var(--zx-border)",
-                        boxShadow: current
-                          ? `0 0 24px ${accent}40`
-                          : isFeatured
-                          ? "0 10px 30px -5px rgba(216, 64, 64, 0.08)"
-                          : "0 2px 8px -2px rgba(0, 0, 0, 0.04)",
-                      }}
-                    >
-                      {/* Glow blob for active or featured */}
-                      {(current || isFeatured) && (
-                        <div
-                          className="absolute -top-8 -right-8 w-32 h-32 rounded-full"
-                          style={{ background: accent, filter: "blur(40px)", opacity: current ? 0.2 : 0.08 }}
-                        />
-                      )}
-
-                      {/* Left: info */}
-                      <div className="flex-1 space-y-4 relative z-10">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="w-10 h-10 rounded-2xl flex items-center justify-center"
-                            style={{ background: `${accent}18` }}
-                          >
-                            <Icon className="w-5 h-5" style={{ color: accent }} />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span
-                                className="text-[10px] font-bold uppercase tracking-widest"
-                                style={{ color: accent }}
-                              >
-                                Tier {id}
-                              </span>
-                              {current && (
-                                <span
-                                  className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full"
-                                  style={{ background: `${accent}22`, color: accent }}
-                                >
-                                  ✦ Active
-                                </span>
-                              )}
-                              {isFeatured && !current && (
-                                <span
-                                  className="text-[9px] font-bold uppercase px-2 py-0.5 rounded-full bg-red-50 text-[var(--zx-primary-deep)] border border-red-200"
-                                >
-                                  ★ Popular
-                                </span>
-                              )}
-                            </div>
-                            <h3
-                              className="text-lg font-black leading-tight text-[var(--zx-ink)]"
-                            >
-                              {name}
-                            </h3>
-                          </div>
-                        </div>
-
-                        <p
-                          className="text-xs"
-                          style={{ color: isFeatured ? "var(--zx-muted)" : "var(--zx-muted)" }}
-                        >
-                          {tagline}
-                        </p>
-
-                        <div className="flex items-baseline gap-1">
-                          <span
-                            className="text-3xl font-black font-mono"
-                            style={{ color: isFeatured ? "var(--zx-cream)" : accent }}
-                          >
-                            {price?.priceEth ?? "—"}
-                          </span>
-                          <span
-                            className="text-xs font-mono"
-                            style={{ color: "var(--zx-muted)" }}
-                          >
-                            tMSTC / 30 days
-                          </span>
-                        </div>
-
-                        <ul
-                          className="space-y-1.5 pt-3"
-                          style={{ borderTop: `1px solid ${isFeatured ? "rgba(255,255,255,0.08)" : "var(--zx-border)"}` }}
-                        >
-                          {features.map((f) => (
-                            <li
-                              key={f}
-                              className="flex items-center gap-2 text-xs"
-                              style={{ color: isFeatured ? "var(--zx-cream)" : "var(--zx-ink)" }}
-                            >
-                              <Check className="w-3.5 h-3.5 shrink-0" style={{ color: "var(--zx-success)" }} />
-                              {f}
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-
-                      {/* Right: buy CTA */}
-                      <div className="flex sm:flex-col justify-end items-end sm:items-stretch relative z-10">
-                        <button
-                          onClick={() => handleBuy(id)}
-                          disabled={buying || current}
-                          className="mt-auto px-6 py-3 rounded-2xl text-xs font-black transition-all flex items-center justify-center gap-2"
-                          style={
-                            current
-                              ? {
-                                  background: `${accent}18`,
-                                  color: accent,
-                                  border: `1px solid ${accent}`,
-                                  cursor: "not-allowed",
-                                  minWidth: "140px",
-                                }
-                              : buying
-                              ? {
-                                  background: accent,
-                                  color: "var(--zx-cream)",
-                                  opacity: 0.7,
-                                  cursor: "not-allowed",
-                                  minWidth: "140px",
-                                }
-                              : {
-                                  background: accent,
-                                  color: "var(--zx-cream)",
-                                  minWidth: "140px",
-                                }
-                          }
-                        >
-                          {buying ? (
-                            <>
-                              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                              Minting…
-                            </>
-                          ) : current ? (
-                            "✦ Active Pass"
-                          ) : isConnected ? (
-                            `Mint ${name}`
-                          ) : (
-                            "Connect Wallet"
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+          <div className="zx-card-footer pt-8">
+            <button
+              disabled
+              className="zx-pricing-btn zx-btn-disabled w-full py-3.5 rounded-2xl text-xs font-bold bg-slate-100 text-slate-500 cursor-not-allowed border border-slate-200"
+            >
+              {chain.userTier === 0 ? "Active by Default" : "Standard Tier"}
+            </button>
           </div>
         </div>
 
-        {/* ── Bottom info row ──────────────────────────────────────────────── */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-6">
-          {[
-            {
-              title: "Soulbound NFT",
-              desc: "ZentrixPass tokens are non-transferable ERC-721 NFTs, bound permanently to your wallet address on-chain.",
-            },
-            {
-              title: "30-Day Validity",
-              desc: "Each minted pass is valid for exactly 30 days (PASS_DURATION enforced by the smart contract).",
-            },
-            {
-              title: "On-Chain Prices",
-              desc: "All pricing is read live from tierPrices() on ZentrixPass — no hidden fees, no backend.",
-            },
-          ].map(({ title, desc }) => (
-            <div
-              key={title}
-              className="rounded-3xl p-6"
-              style={{ background: "var(--zx-cream)", border: "1px solid var(--zx-border)" }}
-            >
-              <div className="text-xs font-black mb-1" style={{ color: "var(--zx-ink)" }}>
-                {title}
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: "var(--zx-muted)" }}>
-                {desc}
+        {/* ── 2. PRO PLAN (1.gif) ───────────────────────────────────────── */}
+        <div
+          className="zx-pricing-card zx-card-pro rounded-3xl p-6 sm:p-8 flex flex-col justify-between border-2 shadow-xl relative overflow-hidden transition-all duration-300 hover:shadow-2xl"
+          style={{
+            background: "rgba(255, 255, 255, 0.98)",
+            borderColor: "var(--zx-primary)",
+            boxShadow: "0 10px 30px -5px rgba(163, 4, 2, 0.12)",
+          }}
+        >
+          {/* Popular Tag */}
+          <div
+            className="zx-popular-badge absolute top-4 right-4 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white shadow-sm"
+            style={{ background: "var(--zx-primary)" }}
+          >
+            Most Popular
+          </div>
+
+          <div className="zx-card-body space-y-6">
+            <div className="zx-card-header flex items-center gap-2">
+              <span
+                className="zx-tier-badge zx-tier-badge-pro text-xs font-bold uppercase tracking-wider px-3 py-1 rounded-full"
+                style={{ background: "rgba(163, 4, 2, 0.1)", color: "var(--zx-primary-deep)" }}
+              >
+                Pro Tier
+              </span>
+            </div>
+
+            {/* NFT Image Preview - Grayscale if unowned, Original Color if owned */}
+            <div className={`zx-card-nft-frame w-full h-44 rounded-2xl overflow-hidden border relative bg-black shadow-inner transition-all duration-300 ${
+              chain.userTier >= 1 ? "border-emerald-400/80 shadow-emerald-950/20" : "border-slate-200"
+            }`}>
+              <img
+                src="/1.gif"
+                alt="Zentrix Pro Pass NFT"
+                className={`zx-card-nft-img w-full h-full object-cover transition-all duration-500 ${
+                  chain.userTier >= 1
+                    ? "grayscale-0 hover:scale-105"
+                    : "grayscale opacity-75 hover:grayscale-0 hover:opacity-100 hover:scale-105"
+                }`}
+              />
+              {chain.userTier >= 1 ? (
+                <div className="zx-card-nft-status zx-status-owned absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full bg-emerald-950/85 backdrop-blur-sm text-[10px] font-mono font-bold text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
+                  <span className="zx-status-dot w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>✦ Owned · Full Color</span>
+                </div>
+              ) : (
+                <div className="zx-card-nft-status zx-status-unowned absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full bg-black/85 backdrop-blur-sm text-[10px] font-mono font-bold text-slate-300 border border-white/20 flex items-center gap-1.5">
+                  <Lock className="zx-lock-icon w-3 h-3 text-slate-400" />
+                  <span>Grayscale · Mint for Color</span>
+                </div>
+              )}
+            </div>
+
+            <div className="zx-card-title-group">
+              <h3 className="zx-card-title text-2xl font-black text-[var(--zx-ink)]">Pro Plan</h3>
+              <p className="zx-card-desc text-xs text-slate-600 mt-1 font-medium leading-relaxed">
+                For active freelancers and clients requiring advanced AI search throughput.
               </p>
             </div>
-          ))}
+
+            {/* Price */}
+            <div className="zx-price-group flex items-baseline gap-1.5">
+              <span className="zx-price-amount text-4xl sm:text-5xl font-black font-mono text-[var(--zx-ink)]">
+                {chain.prices[1]?.priceEth ?? "5.00"}
+              </span>
+              <span className="zx-price-currency text-sm font-bold text-slate-500">tMSTC / 30 days</span>
+            </div>
+
+            {/* Feature List */}
+            <div className="zx-features-section pt-4 border-t border-slate-100 space-y-3">
+              <div className="zx-features-heading text-xs font-bold text-slate-900 uppercase tracking-wide">Pro Benefits:</div>
+              <ul className="zx-features-list space-y-2.5 text-xs text-slate-800 font-medium">
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text"><strong>10 Sarvam AI queries</strong> per day</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">Non-transferable Soulbound NFT minted to wallet</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">Priority semantic talent match scoring</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">Pro verified badge across search results</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">30-day on-chain validity with renew support</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="zx-card-footer pt-8">
+            <button
+              onClick={() => handleBuy(1)}
+              disabled={txTier === 1 || chain.userTier === 1}
+              className={`zx-pricing-btn zx-btn-pro w-full py-3.5 rounded-2xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 ${
+                chain.userTier === 1
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-300 cursor-not-allowed"
+                  : txTier === 1
+                  ? "opacity-80 cursor-wait text-white"
+                  : "hover:opacity-95 text-white active:scale-[0.99] cursor-pointer"
+              }`}
+              style={
+                chain.userTier === 1
+                  ? {}
+                  : { background: "var(--zx-primary)" }
+              }
+            >
+              {txTier === 1 ? (
+                <>
+                  <Loader2 className="zx-btn-spinner w-4 h-4 animate-spin" />
+                  <span>Confirming in BridgeKey...</span>
+                </>
+              ) : chain.userTier === 1 ? (
+                "✦ Active Pro Pass"
+              ) : isConnected ? (
+                "Mint Pro Pass"
+              ) : (
+                "Connect Wallet to Mint"
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* ── 3. ENTERPRISE PLAN (2.gif) ─────────────────────────────────── */}
+        <div
+          className="zx-pricing-card zx-card-enterprise rounded-3xl p-6 sm:p-8 flex flex-col justify-between border shadow-sm transition-all duration-300 hover:shadow-md"
+          style={{
+            background: "rgba(255, 255, 255, 0.95)",
+            borderColor: "var(--zx-border)",
+          }}
+        >
+          <div className="zx-card-body space-y-6">
+            <div className="zx-card-header flex items-center justify-between">
+              <span className="zx-tier-badge zx-tier-badge-enterprise text-xs font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-3 py-1 rounded-full border border-amber-200">
+                Enterprise
+              </span>
+              <Crown className="zx-tier-icon w-5 h-5 text-amber-600" />
+            </div>
+
+            {/* NFT Image Preview - Grayscale if unowned, Original Color if owned */}
+            <div className={`zx-card-nft-frame w-full h-44 rounded-2xl overflow-hidden border relative bg-black shadow-inner transition-all duration-300 ${
+              chain.userTier === 2 ? "border-emerald-400/80 shadow-emerald-950/20" : "border-slate-200"
+            }`}>
+              <img
+                src="/2.gif"
+                alt="Zentrix Enterprise Pass NFT"
+                className={`zx-card-nft-img w-full h-full object-cover transition-all duration-500 ${
+                  chain.userTier === 2
+                    ? "grayscale-0 hover:scale-105"
+                    : "grayscale opacity-75 hover:grayscale-0 hover:opacity-100 hover:scale-105"
+                }`}
+              />
+              {chain.userTier === 2 ? (
+                <div className="zx-card-nft-status zx-status-owned absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full bg-emerald-950/85 backdrop-blur-sm text-[10px] font-mono font-bold text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5 shadow-sm">
+                  <span className="zx-status-dot w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>✦ Owned · Full Color</span>
+                </div>
+              ) : (
+                <div className="zx-card-nft-status zx-status-unowned absolute bottom-2 left-2 px-2.5 py-0.5 rounded-full bg-black/85 backdrop-blur-sm text-[10px] font-mono font-bold text-slate-300 border border-white/20 flex items-center gap-1.5">
+                  <Lock className="zx-lock-icon w-3 h-3 text-slate-400" />
+                  <span>Grayscale · Mint for Color</span>
+                </div>
+              )}
+            </div>
+
+            <div className="zx-card-title-group">
+              <h3 className="zx-card-title text-2xl font-black text-[var(--zx-ink)]">Enterprise Plan</h3>
+              <p className="zx-card-desc text-xs text-slate-600 mt-1 font-medium leading-relaxed">
+                For dev shops, venture DAOs, and high-frequency hiring clients.
+              </p>
+            </div>
+
+            {/* Price */}
+            <div className="zx-price-group flex items-baseline gap-1.5">
+              <span className="zx-price-amount text-4xl sm:text-5xl font-black font-mono text-[var(--zx-ink)]">
+                {chain.prices[2]?.priceEth ?? "15.00"}
+              </span>
+              <span className="zx-price-currency text-sm font-bold text-slate-500">tMSTC / 30 days</span>
+            </div>
+
+            {/* Feature List */}
+            <div className="zx-features-section pt-4 border-t border-slate-100 space-y-3">
+              <div className="zx-features-heading text-xs font-bold text-slate-900 uppercase tracking-wide">Enterprise Power:</div>
+              <ul className="zx-features-list space-y-2.5 text-xs text-slate-800 font-medium">
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text"><strong>15 Sarvam AI queries</strong> per day</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">Exclusive Tier 2 Soulbound NFT on MST Testnet</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">High-frequency multi-milestone escrow support</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">Dedicated arbitration & dispute assistance</span>
+                </li>
+                <li className="zx-feature-item flex items-start gap-2">
+                  <Check className="zx-check-icon w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                  <span className="zx-feature-text">Early access to upcoming cross-chain protocol features</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="zx-card-footer pt-8">
+            <button
+              onClick={() => handleBuy(2)}
+              disabled={txTier === 2 || chain.userTier === 2}
+              className={`zx-pricing-btn zx-btn-enterprise w-full py-3.5 rounded-2xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 ${
+                chain.userTier === 2
+                  ? "bg-emerald-50 text-emerald-700 border border-emerald-300 cursor-not-allowed"
+                  : txTier === 2
+                  ? "opacity-80 cursor-wait text-white"
+                  : "bg-black text-white hover:bg-slate-900 active:scale-[0.99] cursor-pointer"
+              }`}
+            >
+              {txTier === 2 ? (
+                <>
+                  <Loader2 className="zx-btn-spinner w-4 h-4 animate-spin" />
+                  <span>Confirming in BridgeKey...</span>
+                </>
+              ) : chain.userTier === 2 ? (
+                "✦ Active Enterprise Pass"
+              ) : isConnected ? (
+                "Mint Enterprise Pass"
+              ) : (
+                "Connect Wallet to Mint"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Network & Protocol Verification Row ───────────────────────────── */}
+      <div className="zx-pricing-footer zx-pricing-trust-row grid grid-cols-1 sm:grid-cols-3 gap-4 pt-6 border-t border-slate-200">
+        <div className="zx-trust-card zx-trust-soulbound p-4 rounded-2xl bg-white/80 border border-slate-200 text-xs space-y-1">
+          <div className="zx-trust-card-header font-bold text-slate-900 flex items-center gap-1.5">
+            <ShieldCheck className="zx-trust-icon w-4 h-4 text-[var(--zx-primary)]" />
+            <span className="zx-trust-title">Non-Transferable (Soulbound)</span>
+          </div>
+          <p className="zx-trust-card-desc text-slate-600 leading-relaxed font-medium">
+            Passes cannot be sold, transferred, or drained. They reside strictly within the minting wallet address.
+          </p>
+        </div>
+
+        <div className="zx-trust-card zx-trust-duration p-4 rounded-2xl bg-white/80 border border-slate-200 text-xs space-y-1">
+          <div className="zx-trust-card-header font-bold text-slate-900 flex items-center gap-1.5">
+            <Calendar className="zx-trust-icon w-4 h-4 text-emerald-700" />
+            <span className="zx-trust-title">30-Day On-Chain Duration</span>
+          </div>
+          <p className="zx-trust-card-desc text-slate-600 leading-relaxed font-medium">
+            Enforced directly by the smart contract timestamp. Re-minting resets your 30-day window seamlessly.
+          </p>
+        </div>
+
+        <div className="zx-trust-card zx-trust-contract p-4 rounded-2xl bg-white/80 border border-slate-200 text-xs space-y-1">
+          <div className="zx-trust-card-header font-bold text-slate-900 flex items-center gap-1.5">
+            <Zap className="zx-trust-icon w-4 h-4 text-amber-600" />
+            <span className="zx-trust-title">Direct Smart Contract Call</span>
+          </div>
+          <p className="zx-trust-card-desc text-slate-600 leading-relaxed font-medium">
+            Payments are executed directly to <code>ZentrixPass.sol</code> without intermediaries or platform cuts.
+          </p>
         </div>
       </div>
     </div>

@@ -14,7 +14,6 @@ import {
   CheckCircle2,
   RefreshCw,
   Sparkles,
-  Bot,
   Hash,
   Search,
   Check,
@@ -33,11 +32,6 @@ export const OnboardingPage: React.FC = () => {
   const navigate = useNavigate();
   const { user, profile, saveOnboarding } = useAuth();
   const { address, isConnected, openConnectModal, signMessage } = useWallet();
-
-  // If already onboarded, redirect immediately to Profile bento
-  if (profile?.isOnboarded) {
-    return <Navigate to="/profile" replace />;
-  }
 
   // Discord Sequential Pop-up Steps (1 to 5)
   // Step 1: Choose Realm / Role
@@ -78,16 +72,23 @@ export const OnboardingPage: React.FC = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [signatureStatus, setSignatureStatus] = useState<string | null>(null);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [stepError, setStepError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // If already onboarded, redirect immediately to Profile bento (after all hooks)
+  if (profile?.isOnboarded) {
+    return <Navigate to="/profile" replace />;
+  }
+
   // Avatar Base64 Image Encoder
   const handleAvatarFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setStepError(null);
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Please choose an image under 2MB.");
+      setStepError("Please choose an image under 2MB.");
       return;
     }
 
@@ -128,11 +129,12 @@ export const OnboardingPage: React.FC = () => {
 
   // Toggle Choosable Tag
   const toggleTag = (tag: string) => {
+    setStepError(null);
     if (selectedTags.includes(tag)) {
       setSelectedTags(selectedTags.filter((t) => t !== tag));
     } else {
       if (selectedTags.length >= 10) {
-        alert("You can select up to 10 craft tags.");
+        setStepError("Maximum 10 craft tags allowed.");
         return;
       }
       setSelectedTags([...selectedTags, tag]);
@@ -199,7 +201,7 @@ export const OnboardingPage: React.FC = () => {
       }, 1200);
     } catch (err: any) {
       console.error("Binding failed:", err);
-      alert(err?.message || "Failed to bind wallet. Please try again.");
+      setStepError(err?.message || "Failed to bind wallet. Please check BridgeKey confirmation and try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -264,7 +266,30 @@ export const OnboardingPage: React.FC = () => {
           style={{ background: "var(--zx-primary)" }}
         />
 
-        <div className="p-6 sm:p-8">
+        <div className="p-6 sm:p-8 space-y-4">
+          {stepError && (
+            <div
+              className="flex items-center justify-between p-3.5 rounded-2xl text-xs font-semibold shadow-sm animate-in fade-in duration-150"
+              style={{
+                background: "rgba(163, 4, 2, 0.08)",
+                border: "1px solid var(--zx-primary)",
+                color: "var(--zx-primary-deep)",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{stepError}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setStepError(null)}
+                className="text-xs font-bold underline hover:opacity-80 ml-3"
+              >
+                Dismiss
+              </button>
+            </div>
+          )}
+
           <AnimatePresence mode="wait">
             {/* ── STEP 1: CHOOSE REALM / ROLE ── */}
             {currentStep === 1 && (

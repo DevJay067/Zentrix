@@ -49,14 +49,35 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<FirebaseUser | null>(null);
-  const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [currentRole, setCurrentRole] = useState<UserRole | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const activeUid = localStorage.getItem("zx_active_uid");
+        if (activeUid) {
+          const cachedRaw = localStorage.getItem(`zx_user_profile_${activeUid}`);
+          if (cachedRaw) return JSON.parse(cachedRaw);
+        }
+      }
+    } catch {}
+    return null;
+  });
+  const [currentRole, setCurrentRole] = useState<UserRole | null>(() => {
+    try {
+      if (typeof window !== "undefined") {
+        const activeRole = localStorage.getItem("zx_active_role") as UserRole;
+        if (activeRole) return activeRole;
+      }
+    } catch {}
+    return null;
+  });
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (fbUser) => {
       setUser(fbUser);
       if (fbUser) {
+        localStorage.setItem("zx_active_uid", fbUser.uid);
+        localStorage.setItem("zx_active_email", fbUser.email || "");
         // 1. Instant hydration from local cache
         const cachedRaw = localStorage.getItem(`zx_user_profile_${fbUser.uid}`);
         if (cachedRaw) {
@@ -158,12 +179,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     await signOut(auth);
+    setUser(null);
     setProfile(null);
     setCurrentRole(null);
+    localStorage.removeItem("zx_active_uid");
+    localStorage.removeItem("zx_active_email");
+    localStorage.removeItem("zx_active_role");
   };
 
   const updateRole = (role: UserRole) => {
     setCurrentRole(role);
+    localStorage.setItem("zx_active_role", role);
+    if (profile) {
+      const updated = { ...profile, role };
+      setProfile(updated);
+      if (user?.uid) {
+        localStorage.setItem(`zx_user_profile_${user.uid}`, JSON.stringify(updated));
+      }
+    }
   };
 
   const saveOnboarding = async (data: Partial<UserProfile>, role: UserRole, walletAddress: string) => {

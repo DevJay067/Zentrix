@@ -9,8 +9,9 @@ import React, {
 import { BrowserProvider, JsonRpcSigner, formatEther, JsonRpcProvider, Wallet as EthersWallet } from "ethers";
 import { Provider as MSTProvider, Constants as MSTConstants } from "@mstblockchain/mst-sdk";
 import { ConnectWalletModal } from "../components/ConnectWalletModal";
+import { scanNFTAssets } from "../lib/nftScanner";
 
-export type WalletType = "bridgekey" | "injected" | "demo-client" | "demo-freelancer" | null;
+export type WalletType = "bridgekey" | "injected" | null;
 
 export interface WalletContextType {
   address: string | null;
@@ -25,7 +26,7 @@ export interface WalletContextType {
   walletType: WalletType;
   openConnectModal: () => void;
   closeConnectModal: () => void;
-  connectWallet: (preferredType?: "bridgekey" | "injected" | "demo-client" | "demo-freelancer") => Promise<string | null>;
+  connectWallet: (preferredType?: "bridgekey" | "injected") => Promise<string | null>;
   disconnectWallet: () => void;
   switchNetwork: () => Promise<boolean>;
   signMessage: (message: string) => Promise<string>;
@@ -40,18 +41,35 @@ const MST_TESTNET_CHAIN_ID_HEX = "0x5752035";
 const defaultMstProvider = new MSTProvider(MSTConstants.DEFAULT_RPC_URL);
 const publicJsonRpcProvider = new JsonRpcProvider(MSTConstants.DEFAULT_RPC_URL);
 
-// Demo testnet addresses
-const DEMO_CLIENT_ADDR = "0x7FC1d02922d4865fd53De59697407a42e64d1Cad";
-const DEMO_FREELANCER_ADDR = "0x8cA0f3176997F32CCBb4598Fc8C966C95aeEEc9e";
-
 export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [address, setAddress] = useState<string | null>(null);
-  const [chainId, setChainId] = useState<number | null>(null);
+  const [address, setAddress] = useState<string | null>(() => {
+    try {
+      if (typeof window !== "undefined" && localStorage.getItem("zx_wallet_approved") === "true") {
+        return localStorage.getItem("zx_connected_address");
+      }
+    } catch {}
+    return null;
+  });
+  const [chainId, setChainId] = useState<number | null>(() => {
+    try {
+      if (typeof window !== "undefined" && localStorage.getItem("zx_wallet_approved") === "true") {
+        return MST_TESTNET_CHAIN_ID;
+      }
+    } catch {}
+    return null;
+  });
   const [balance, setBalance] = useState<string>("0");
   const [isConnecting, setIsConnecting] = useState<boolean>(false);
   const [signer, setSigner] = useState<any>(null);
   const [provider, setProvider] = useState<any>(publicJsonRpcProvider);
-  const [walletType, setWalletType] = useState<WalletType>(null);
+  const [walletType, setWalletType] = useState<WalletType>(() => {
+    try {
+      if (typeof window !== "undefined" && localStorage.getItem("zx_wallet_approved") === "true") {
+        return (localStorage.getItem("zx_connected_type") as WalletType) || null;
+      }
+    } catch {}
+    return null;
+  });
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   const getInjectedProvider = (preferred?: "bridgekey" | "injected") => {
@@ -116,10 +134,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   };
 
   const connectWallet = async (
-    preferredType?: "bridgekey" | "injected" | "demo-client" | "demo-freelancer"
+    preferredType?: "bridgekey" | "injected"
   ): Promise<string | null> => {
     // If no type specified and no injected provider available, open modal
-    const injected = getInjectedProvider();
+    const injected = getInjectedProvider(preferredType);
     if (!preferredType && !injected) {
       setIsModalOpen(true);
       return null;
@@ -128,37 +146,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setIsConnecting(true);
 
     try {
-      // 1. Instant Demo Wallets
-      if (preferredType === "demo-client" || preferredType === "demo-freelancer") {
-        const demoAddr = preferredType === "demo-client" ? DEMO_CLIENT_ADDR : DEMO_FREELANCER_ADDR;
-        setAddress(demoAddr);
-        setChainId(MST_TESTNET_CHAIN_ID);
-        setWalletType(preferredType);
-        setProvider(publicJsonRpcProvider);
-
-        // Demo simulated signer that passes testnet rpc
-        const mockSigner = {
-          getAddress: async () => demoAddr,
-          provider: publicJsonRpcProvider,
-          signMessage: async (msg: string) => {
-            return "0x" + "1".repeat(130);
-          },
-          sendTransaction: async (tx: any) => {
-            return {
-              hash: "0x03f4a7c32f86c9eb639ad210070c1555bf88133b7ab4957160531828956650e0",
-              wait: async () => ({ status: 1 }),
-            };
-          },
-        };
-        setSigner(mockSigner);
-
-        await updateBalance(demoAddr, publicJsonRpcProvider);
-        localStorage.setItem("zx_connected_type", preferredType);
-        return demoAddr;
-      }
-
-      // 2. Real Injected Wallet (BridgeKey or Browser EVM)
-      const ethereum = getInjectedProvider(preferredType === "bridgekey" ? "bridgekey" : "injected");
+      // Real Injected Wallet (BridgeKey or Browser EVM)
+      const ethereum = injected;
       if (!ethereum) {
         setIsModalOpen(true);
         throw new Error("No BridgeKey or EVM wallet detected. Please install BridgeKey extension.");
@@ -192,7 +181,10 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       setWalletType(preferredType || "bridgekey");
 
       await updateBalance(accountAddress, browserProvider);
-      localStorage.setItem("zx_connected_type", preferredType || "injected");
+      localStorage.setItem("zx_connected_type", preferredType || "bridgekey");
+      localStorage.setItem("zx_connected_address", accountAddress);
+      localStorage.setItem("zx_wallet_approved", "true");
+      scanNFTAssets(accountAddress, browserProvider);
       return accountAddress;
     } catch (error: any) {
       console.error("Failed to connect wallet:", error);
@@ -210,6 +202,8 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setChainId(null);
     setWalletType(null);
     localStorage.removeItem("zx_connected_type");
+    localStorage.removeItem("zx_connected_address");
+    localStorage.removeItem("zx_wallet_approved");
   };
 
   const signMessage = async (message: string): Promise<string> => {
@@ -220,20 +214,55 @@ export const WalletProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     throw new Error("Signer does not support signMessage");
   };
 
-  // Reconnect on mount if previous session was saved
+  // Robust silent auto-reconnect on mount / reload
   useEffect(() => {
     const savedType = localStorage.getItem("zx_connected_type") as WalletType;
-    if (savedType) {
-      if (savedType === "demo-client" || savedType === "demo-freelancer") {
-        connectWallet(savedType).catch(() => {});
-      } else {
-        const eth = getInjectedProvider();
-        if (eth) {
-          connectWallet(savedType).catch(() => {});
+    const isApproved = localStorage.getItem("zx_wallet_approved") === "true";
+
+    if (!savedType || !isApproved) return;
+
+    let attempts = 0;
+    const maxAttempts = 20; // poll up to 2 seconds for extension injection
+    let intervalId: any = null;
+
+    const trySilentReconnect = async () => {
+      attempts++;
+      const ethereum = getInjectedProvider(savedType === "bridgekey" ? "bridgekey" : "injected");
+      if (ethereum) {
+        clearInterval(intervalId);
+        try {
+          const browserProvider = new BrowserProvider(ethereum, "any");
+          // eth_accounts checks authorized addresses without triggering user popups
+          const accounts: string[] = await browserProvider.send("eth_accounts", []);
+          if (accounts && accounts.length > 0) {
+            const activeSigner = await browserProvider.getSigner();
+            const accountAddress = accounts[0];
+            const network = await browserProvider.getNetwork();
+            let currentChainId = Number(network.chainId);
+            setChainId(currentChainId);
+            setProvider(browserProvider);
+            setSigner(activeSigner);
+            setAddress(accountAddress);
+            setWalletType(savedType);
+            await updateBalance(accountAddress, browserProvider);
+            localStorage.setItem("zx_connected_address", accountAddress);
+            scanNFTAssets(accountAddress, browserProvider);
+          }
+        } catch (err) {
+          console.warn("[Wallet] Silent reconnect notice:", err);
         }
+      } else if (attempts >= maxAttempts) {
+        clearInterval(intervalId);
       }
-    }
-  }, []);
+    };
+
+    trySilentReconnect();
+    intervalId = setInterval(trySilentReconnect, 100);
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [updateBalance]);
 
   // Listen for provider events
   useEffect(() => {

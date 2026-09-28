@@ -1,0 +1,21 @@
+# Zentrix Protocol Robots Configuration
+# https://zentrix.vercel.app/
+
+User-agent: *
+Allow: /
+Allow: /marketplace
+Allow: /agent
+Allow: /dashboard
+Allow: /pricing
+Allow: /about
+Allow: /manual
+Allow: /contact
+Allow: /disclosure
+Allow: /profile
+
+# Disallow internal assets and scratch directories
+Disallow: /api/
+Disallow: /private/
+
+# XML Sitemap
+Sitemap: https://zentrix.vercel.app/sitemap.xml

@@ -15,20 +15,36 @@
   body {
     background-color: var(--zx-cream);
     color: var(--zx-ink);
-    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial, sans-serif;
     min-height: 100vh;
     margin: 0;
     padding: 0;
   }
 
-  html, button, input, select, textarea, p, span, a, label {
-    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  html,
+  button,
+  input,
+  select,
+  textarea,
+  p,
+  span,
+  a,
+  label {
+    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
-  h1, h2, h3, h4, h5, h6 {
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
     color: var(--zx-ink);
     font-weight: 700;
-    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: "Poppins", -apple-system, BlinkMacSystemFont, "Segoe UI",
+      Roboto, "Helvetica Neue", Arial, sans-serif;
   }
 
   /* Selection highlight */
@@ -205,8 +221,12 @@
 
 /* ─── Editorial Marquee & Typography ─────────────────────────────────────── */
 @keyframes marquee-scroll {
-  0% { transform: translateX(0%); }
-  100% { transform: translateX(-50%); }
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
 }
 
 .animate-marquee {
@@ -228,7 +248,8 @@
   background: var(--zx-surface);
   border: 1px solid var(--zx-border);
   border-radius: 1.5rem;
-  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
 }
 
 .editorial-card:hover {
@@ -302,6 +323,48 @@
   box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.06);
 }
 
+/* ─── Conventional Zentrix Pricing Classes ───────────────────────────────── */
+.zx-pricing-page {
+  position: relative;
+}
+
+.zx-pricing-hero {
+  position: relative;
+}
+
+.zx-pricing-title {
+  letter-spacing: -0.03em;
+}
+
+.zx-pricing-subtitle {
+  line-height: 1.6;
+}
+
+.zx-current-nft-preview {
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.zx-current-nft-preview:hover {
+  box-shadow: 0 20px 40px -12px rgba(42, 15, 15, 0.12);
+}
+
+.zx-pricing-card {
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.25s ease;
+}
+
+.zx-pricing-card:hover {
+  transform: translateY(-2px);
+}
+
+.zx-card-pro {
+  border-color: var(--zx-primary);
+}
+
+.zx-pricing-btn {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .zx-telemetry-badge {
   display: inline-flex;
   align-items: center;
@@ -353,4 +416,120 @@
   line-height: 1.65;
 }
 
+/* ─── Glassmorphism & Elevated Micro-Interactions ───────────────────────── */
+.glass-morphism {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+}
 
+.glass-morphism-dark {
+  background: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 12px 40px -10px rgba(0, 0, 0, 0.4);
+}
+
+.glass-card {
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--zx-border);
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--zx-primary);
+  box-shadow: 0 16px 36px -8px rgba(163, 4, 2, 0.08);
+}
+
+.dribbble-glow {
+  position: relative;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.25s ease;
+}
+
+.dribbble-glow:hover {
+  transform: translateY(-3px) scale(1.01);
+  box-shadow: 0 20px 40px -12px rgba(163, 4, 2, 0.15);
+}
+
+span.zx-network-badge.hidden.xl\:inline-flex.items-center.gap-1\.5.px-2\.5.py-0\.5.rounded-full.text-\[10px\].font-mono.font-semibold.uppercase.tracking-wider.bg-emerald-50.text-emerald-700.border.border-emerald-200\/80 {
+  display: none;
+}
+nav.zx-nav-island.hidden.md\:flex.items-center.gap-1.px-2\.5.py-1.rounded-full.border.shadow-inner.text-xs.font-semibold {
+  padding: 1% 4%;
+}
+h1.zx-hero-title.text-4xl.sm\:text-6xl.md\:text-7xl.font-black.uppercase.tracking-tight.leading-\[0\.98\].text-\[var\(--zx-ink\)\] {
+  font-size: 3rem;
+}
+.zx-footer-watermark-text {
+  color: black;
+  font-weight: 700;
+  font-size: 1600%;
+  letter-spacing: 0em;
+}
+
+.zx-footer-watermark-text::after {
+  display: block;
+  background: var(--zx-primary);
+  width: 4%;
+  top: 12%;
+  right: 28.5%;
+  height: 15%;
+  border-radius: 6rem;
+  content: "";
+  position: absolute;
+}
+
+.zx-footer-watermark-text::before {
+  display: block;
+  background: var(--zx-primary);
+  width: 4%;
+  bottom: 21%;
+  right: 10%;
+  height: 15%;
+  border-radius: 6rem;
+  content: "";
+  position: absolute;
+}
+.zx-nft-visual-wrapper {
+  margin: 0;
+  width: 100%;
+}
+
+img.zx-nft-visual-img {
+  width: 100%;
+}
+.zx-nft-visual-wrapper {
+  margin: 0;
+  width: 100%;
+  border-radius: 5rem;
+}
+
+img.zx-nft-visual-img {
+  width: 100%;
+  border-radius: 5rem;
+  height: 24rem;
+}
+
+.zx-current-nft-preview {
+  width: 80%;
+  margin: 0;
+  border-radius: 6rem;
+}
+
+.zx-nft-token-pill.absolute.top-2.right-2.px-2\.5.py-0\.5.rounded-full.bg-black\/75.backdrop-blur-md.text-\[10px\].font-mono.font-bold.text-white.border.border-white\/20 {
+  top: 8%;
+  right: 5%;
+}
+
+.zx-current-nft-preview {
+  align-self: center;
+  justify-self: center;
+}

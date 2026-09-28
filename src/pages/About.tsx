@@ -7,11 +7,14 @@ import {
   ExternalLink,
   Copy,
   Database,
-  Bot,
   Layers,
   Key,
 } from "lucide-react";
 import { CONTRACT_ADDRESSES } from "../contracts";
+
+const RobotIcon: React.FC<{ className?: string; style?: React.CSSProperties }> = ({ className }) => (
+  <img src="/robot.png" alt="Sarvam AI" className={`${className || "w-5 h-5"} object-contain`} />
+);
 
 // ─── Copy-to-clipboard helper ──────────────────────────────────────────────────
 
@@ -37,28 +40,32 @@ const ARCH_CELLS = [
     label: "Firebase Layer",
     sub: "Auth & Storage",
     dark: false,
-    body: "Firebase Auth provides Google/email login. Firestore stores user profiles, gig listings, and off-chain metadata. All PII stays off-chain; only wallet addresses and hashed CIDs touch the blockchain.",
+    body: "Firebase Auth provides Google and email login. Firestore stores user profiles, gig listings, and off-chain metadata. All PII stays strictly off-chain; only wallet addresses and hashed CIDs touch the blockchain.",
+    tags: ["Email & Google Auth", "Base64 Avatars", "Off-Chain Cache", "Sub-second Indexing"],
   },
   {
     icon: Cpu,
     label: "MST Chain Layer",
-    sub: "Smart Contracts",
+    sub: "Smart Contracts & Settlement",
     dark: true,
     body: "Three OpenZeppelin-v5 contracts on Chain ID 91562037: ZentrixEscrow (milestone-gated fund custody), ZentrixReputation (soulbound rating NFTs), ZentrixPass (AI access pass NFTs). Zero custody risk.",
+    tags: ["Chain ID: 91562037", "Gas: 0.0001 tMSTC", "OZ v5 Contracts", "Pull Payments"],
   },
   {
-    icon: Bot,
+    icon: RobotIcon,
     label: "Sarvam AI Layer",
     sub: "sarvam-30b · Server-side only",
     dark: false,
     body: "sarvam-30b runs exclusively server-side via tool-calling. It evaluates gig descriptions and freelancer tech stacks to produce ranked match scores — no PII is ever sent to the model, complying with India's DPDP Act 2023.",
+    tags: ["sarvam-30b Engine", "Zero Client Leaks", "DPDP Act 2023", "Hard Rule 5"],
   },
   {
     icon: Key,
     label: "BridgeKey Layer",
-    sub: "EIP-1193 Wallet",
+    sub: "EIP-1193 Secure Signing",
     dark: true,
     body: "MST's official BridgeKey Chrome extension provides EVM-compatible EIP-1193 signing. Zentrix also supports standard MetaMask-compatible wallets via window.ethereum, auto-prompting a network switch to MST Testnet on connect.",
+    tags: ["BridgeKey Extension", "EIP-1193 Provider", "Auto Network Switch", "Non-Custodial"],
   },
 ];
 
@@ -147,130 +154,64 @@ export const AboutPage: React.FC = () => {
         </blockquote>
       </div>
 
-      {/* ── Architecture — 4-cell asymmetric bento ──────────────────────── */}
-      <div>
-        <h2 className="text-xl font-black mb-4 text-[var(--zx-ink)]">
-          Technical Architecture
-        </h2>
-        {/* 2 rows × 2 cols, asymmetric: first row [1+3], second row [3+1] */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          {/* Firebase — narrow */}
-          <div
-            className="sm:col-span-1 rounded-3xl p-6 flex flex-col gap-4 shadow-xs"
-            style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
-          >
-            <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: "rgba(216,64,64,0.08)" }}
-            >
-              <Database className="w-5 h-5 text-[var(--zx-primary)]" />
-            </div>
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-widest mb-0.5 text-[var(--zx-primary-deep)]">
-                {ARCH_CELLS[0].sub}
-              </div>
-              <h3 className="font-black text-base text-[var(--zx-ink)]">
-                {ARCH_CELLS[0].label}
-              </h3>
-            </div>
-            <p className="text-xs leading-relaxed text-[var(--zx-muted)]">
-              {ARCH_CELLS[0].body}
-            </p>
+      {/* ── Architecture — 4-cell balanced bento grid ──────────────────────── */}
+      <div className="space-y-4">
+        <div>
+          <div className="text-[10px] font-black uppercase tracking-widest text-[var(--zx-primary-deep)] mb-1">
+            System Topology
           </div>
+          <h2 className="text-xl sm:text-2xl font-black text-[var(--zx-ink)]">
+            Technical Architecture
+          </h2>
+          <p className="text-xs text-[var(--zx-muted)] max-w-2xl mt-0.5">
+            Decoupled multi-tier architecture combining off-chain reactivity with immutable on-chain custody and server-isolated AI.
+          </p>
+        </div>
 
-          {/* MST Chain — wide cell */}
-          <div
-            className="sm:col-span-3 rounded-3xl p-7 flex flex-col gap-4 relative overflow-hidden shadow-xs"
-            style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
-          >
+        {/* 2x2 grid eliminating white and blank spaces */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {ARCH_CELLS.map(({ icon: Icon, label, sub, body, tags }) => (
             <div
-              className="absolute -top-8 -right-8 w-40 h-40 rounded-full opacity-10"
-              style={{ background: "var(--zx-primary)", filter: "blur(40px)" }}
-            />
-            <div className="relative z-10 flex items-start gap-4">
-              <div
-                className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
-                style={{ background: "rgba(216,64,64,0.08)" }}
-              >
-                <Cpu className="w-5 h-5 text-[var(--zx-primary)]" />
-              </div>
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5 text-[var(--zx-primary-deep)]">
-                  {ARCH_CELLS[1].sub}
+              key={label}
+              className="rounded-3xl p-6 sm:p-7 flex flex-col justify-between gap-4 relative overflow-hidden shadow-xs hover:border-[var(--zx-primary)] transition-colors"
+              style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
+            >
+              <div className="space-y-3 relative z-10">
+                <div className="flex items-center gap-3">
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+                    style={{ background: "rgba(163, 4, 2, 0.08)" }}
+                  >
+                    <Icon className="w-5 h-5" style={{ color: "var(--zx-primary)" }} />
+                  </div>
+                  <div>
+                    <div className="text-[10px] font-black uppercase tracking-widest text-[var(--zx-primary-deep)]">
+                      {sub}
+                    </div>
+                    <h3 className="font-black text-base text-[var(--zx-ink)]">
+                      {label}
+                    </h3>
+                  </div>
                 </div>
-                <h3 className="font-black text-base text-[var(--zx-ink)]">
-                  {ARCH_CELLS[1].label}
-                </h3>
-              </div>
-            </div>
-            <p className="relative z-10 text-xs leading-relaxed text-[var(--zx-muted)]">
-              {ARCH_CELLS[1].body}
-            </p>
-            {/* Chain ID pill */}
-            <div
-              className="relative z-10 self-start px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-slate-100 text-slate-800 border border-slate-200"
-            >
-              Chain ID: 91562037
-            </div>
-          </div>
 
-          {/* Sarvam AI — wide */}
-          <div
-            className="sm:col-span-3 rounded-3xl p-7 flex flex-col gap-4 relative overflow-hidden shadow-xs"
-            style={{ background: "var(--zx-surface)", border: "1px solid var(--zx-border)" }}
-          >
-            <div
-              className="absolute bottom-0 left-0 w-48 h-32 rounded-full opacity-10"
-              style={{ background: "var(--zx-warning)", filter: "blur(40px)" }}
-            />
-            <div className="relative z-10 flex items-start gap-4">
-              <div
-                className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 bg-amber-50"
-              >
-                <Bot className="w-5 h-5 text-amber-600" />
+                <p className="text-xs leading-relaxed text-[var(--zx-muted)]">
+                  {body}
+                </p>
               </div>
-              <div>
-                <div className="text-[10px] font-black uppercase tracking-widest mb-0.5 text-amber-700">
-                  {ARCH_CELLS[2].sub}
-                </div>
-                <h3 className="font-black text-base text-[var(--zx-ink)]">
-                  {ARCH_CELLS[2].label}
-                </h3>
-              </div>
-            </div>
-            <p className="relative z-10 text-xs leading-relaxed text-[var(--zx-muted)]">
-              {ARCH_CELLS[2].body}
-            </p>
-            <div
-              className="relative z-10 self-start px-3 py-1.5 rounded-xl text-xs font-mono font-bold bg-amber-50 text-amber-800 border border-amber-200"
-            >
-              Server-side only · Zero PII
-            </div>
-          </div>
 
-          {/* BridgeKey — narrow */}
-          <div
-            className="sm:col-span-1 rounded-3xl p-6 flex flex-col gap-4"
-            style={{ background: "var(--zx-cream)", border: "1px solid var(--zx-border)" }}
-          >
-            <div
-              className="w-10 h-10 rounded-2xl flex items-center justify-center"
-              style={{ background: "rgba(42,15,15,0.08)" }}
-            >
-              <Key className="w-5 h-5" style={{ color: "var(--zx-ink)" }} />
-            </div>
-            <div>
-              <div className="text-[10px] font-black uppercase tracking-widest mb-0.5" style={{ color: "var(--zx-muted)" }}>
-                {ARCH_CELLS[3].sub}
+              {/* Technical Capability Badges */}
+              <div className="flex flex-wrap gap-1.5 pt-3 border-t relative z-10" style={{ borderColor: "var(--zx-border-subtle)" }}>
+                {tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="px-2.5 py-1 rounded-xl text-[10px] font-mono font-bold bg-slate-50 text-slate-700 border border-slate-200"
+                  >
+                    {tag}
+                  </span>
+                ))}
               </div>
-              <h3 className="font-black text-base" style={{ color: "var(--zx-ink)" }}>
-                {ARCH_CELLS[3].label}
-              </h3>
             </div>
-            <p className="text-xs leading-relaxed" style={{ color: "var(--zx-muted)" }}>
-              {ARCH_CELLS[3].body}
-            </p>
-          </div>
+          ))}
         </div>
       </div>
 
@@ -492,11 +433,27 @@ export const AboutPage: React.FC = () => {
           border: "1px solid var(--zx-border)",
         }}
       >
-        <div className="relative z-10 max-w-3xl space-y-6">
-          <h2 className="text-2xl font-black text-[var(--zx-ink)]">
-            Mission &amp; Philosophy
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="relative z-10 max-w-4xl mx-auto space-y-6 text-center">
+          <div className="space-y-2">
+            <span
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest"
+              style={{
+                background: "rgba(163, 4, 2, 0.08)",
+                border: "1px solid rgba(163, 4, 2, 0.2)",
+                color: "var(--zx-primary-deep)",
+              }}
+            >
+              Foundational Ethos
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black text-[var(--zx-ink)]">
+              Mission &amp; Philosophy
+            </h2>
+            <p className="text-xs text-[var(--zx-muted)] max-w-xl mx-auto leading-relaxed">
+              Decentralized infrastructure enabling trustless collaboration between global clients and verified Web3 builders.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
             {[
               {
                 title: "Trustless by Design",
@@ -513,7 +470,7 @@ export const AboutPage: React.FC = () => {
             ].map(({ title, body }) => (
               <div
                 key={title}
-                className="p-5 rounded-2xl flex flex-col gap-2 shadow-xs"
+                className="p-5 rounded-2xl flex flex-col gap-2 shadow-xs hover:border-[var(--zx-primary)] transition-colors"
                 style={{
                   background: "var(--zx-surface)",
                   border: "1px solid var(--zx-border)",
@@ -528,7 +485,8 @@ export const AboutPage: React.FC = () => {
               </div>
             ))}
           </div>
-          <p className="text-xs" style={{ color: "var(--zx-muted)", opacity: 0.6 }}>
+
+          <p className="text-xs pt-2" style={{ color: "var(--zx-muted)", opacity: 0.7 }}>
             Zentrix — MST Blockchain × NEWRRO Buildathon 2026 · BMS College of Engineering, Bengaluru
           </p>
         </div>

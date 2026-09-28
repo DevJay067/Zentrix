@@ -12,7 +12,10 @@ import { LoginPage } from "./pages/Login";
 import { OnboardingPage } from "./pages/Onboarding";
 import { ProfilePage } from "./pages/Profile";
 import { DisclosurePage } from "./pages/Disclosure";
+import { ContactPage } from "./pages/Contact";
+import { ManualPage } from "./pages/Manual";
 import { Footer } from "./components/Footer";
+import { CursorFollower } from "./components/CursorFollower";
 
 export const App: React.FC = () => {
   const [showSplash, setShowSplash] = useState(true);
@@ -23,6 +26,7 @@ export const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[var(--zx-cream)] text-[var(--zx-ink)]">
+      <CursorFollower />
       <Navbar />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -37,6 +41,8 @@ export const App: React.FC = () => {
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/disclosure" element={<DisclosurePage />} />
+          <Route path="/contact" element={<ContactPage />} />
+          <Route path="/manual" element={<ManualPage />} />
         </Routes>
       </main>
 

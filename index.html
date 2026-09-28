@@ -58,6 +58,9 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
     <link rel="manifest" href="/site.webmanifest" />
 
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://zentrix.vercel.app/" />
+
     <!-- Typography Fonts Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -65,6 +68,40 @@
       href="https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,400;1,600&display=swap"
       rel="stylesheet"
     />
+
+    <!-- Schema.org JSON-LD Structured Data for Web3 Freelance Escrow -->
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@graph": [
+          {
+            "@type": "WebApplication",
+            "@id": "https://zentrix.vercel.app/#webapp",
+            "name": "Zentrix",
+            "url": "https://zentrix.vercel.app/",
+            "applicationCategory": "BusinessApplication, FinanceApplication",
+            "operatingSystem": "All",
+            "description": "Decentralized freelance marketplace with non-custodial milestone escrow on MST Blockchain Testnet (Chain ID 91562037), Sarvam-30B AI talent matching, Pass NFT credits, and soulbound reputation credentials.",
+            "offers": {
+              "@type": "Offer",
+              "price": "0",
+              "priceCurrency": "USD"
+            }
+          },
+          {
+            "@type": "Organization",
+            "@id": "https://zentrix.vercel.app/#organization",
+            "name": "Zentrix Protocol",
+            "url": "https://zentrix.vercel.app/",
+            "logo": "https://zentrix.vercel.app/navlogo.png",
+            "sameAs": [
+              "https://testnet.mstscan.com/address/0xa50759E9CE985Fbb06503CaeC0DB9D1fB1233726"
+            ],
+            "description": "Building trust-minimized, non-custodial milestone escrow infrastructure for Web3 talent on MST Blockchain."
+          }
+        ]
+      }
+    </script>
   </head>
   <body class="bg-surface text-ink min-h-screen">
     <div id="root"></div>

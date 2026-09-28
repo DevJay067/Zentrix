@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useWallet } from "../context/WalletContext";
+import { getCachedNFTAssets, scanNFTAssets, NFTScanResult } from "../lib/nftScanner";
 import { FREELANCE_CATEGORIES } from "../lib/tags";
 import {
   ShieldCheck,
@@ -17,7 +18,6 @@ import {
   TrendingUp,
   Clock,
   Layers,
-  Bot,
   ArrowRight,
   Briefcase,
   X,
@@ -28,16 +28,41 @@ export const ProfilePage: React.FC = () => {
   const { user, profile, currentRole, updateRole, updateProfile } = useAuth();
   const { address, isConnected, openConnectModal } = useWallet();
 
+  const activeWallet = profile?.walletAddress || address;
+  const [nftAssets, setNftAssets] = useState<NFTScanResult>(() => getCachedNFTAssets(activeWallet));
+
   const [copied, setCopied] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+
+  // Deep scan assets when wallet is active or changed
+  useEffect(() => {
+    if (activeWallet) {
+      setNftAssets(getCachedNFTAssets(activeWallet));
+      scanNFTAssets(activeWallet);
+    }
+  }, [activeWallet]);
+
+  // Real-time reactive updates from scan events
+  useEffect(() => {
+    const onScanned = (e: any) => {
+      const d = e.detail;
+      if (d) {
+        setNftAssets(d);
+      }
+    };
+    window.addEventListener("zx_nft_scanned", onScanned);
+    return () => window.removeEventListener("zx_nft_scanned", onScanned);
+  }, []);
 
   // Edit form state
   const [editName, setEditName] = useState(profile?.name || "");
   const [editDesignation, setEditDesignation] = useState(profile?.designation || "");
   const [editBio, setEditBio] = useState(profile?.bio || "");
   const [editOrganization, setEditOrganization] = useState(profile?.organization || "");
+  const [editRole, setEditRole] = useState<"client" | "freelancer">(currentRole);
   const [tagModalOpen, setTagModalOpen] = useState(false);
+  const [profileFeedback, setProfileFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -48,7 +73,8 @@ export const ProfilePage: React.FC = () => {
       setEditBio(profile.bio || "");
       setEditOrganization(profile.organization || "");
     }
-  }, [profile]);
+    setEditRole(currentRole);
+  }, [profile, currentRole]);
 
   const copyAddress = () => {
     if (!profile?.walletAddress && !address) return;
@@ -59,11 +85,12 @@ export const ProfilePage: React.FC = () => {
 
   // Image Encode / Decode Handler (Base64 Data URL)
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setProfileFeedback(null);
     const file = e.target.files?.[0];
     if (!file) return;
 
     if (file.size > 2 * 1024 * 1024) {
-      alert("Please select an image smaller than 2MB.");
+      setProfileFeedback({ type: "error", msg: "Please select an image smaller than 2MB." });
       return;
     }
 
@@ -123,17 +150,22 @@ export const ProfilePage: React.FC = () => {
       bio: editBio,
       organization: editOrganization,
     });
+    if (editRole !== currentRole) {
+      await updateRole(editRole);
+    }
+    setProfileFeedback({ type: "success", msg: "Profile and account role successfully saved!" });
     setIsEditing(false);
   };
 
   const toggleTag = async (tag: string) => {
+    setProfileFeedback(null);
     const currentTags = profile?.expertise || [];
     let updated: string[];
     if (currentTags.includes(tag)) {
       updated = currentTags.filter((t) => t !== tag);
     } else {
       if (currentTags.length >= 10) {
-        alert("Maximum 10 skill tags allowed.");
+        setProfileFeedback({ type: "error", msg: "Maximum 10 skill tags allowed." });
         return;
       }
       updated = [...currentTags, tag];
@@ -144,7 +176,6 @@ export const ProfilePage: React.FC = () => {
     });
   };
 
-  const activeWallet = profile?.walletAddress || address;
   const shortAddress = activeWallet
     ? `${activeWallet.slice(0, 6)}...${activeWallet.slice(-4)}`
     : "Not connected";
@@ -173,40 +204,47 @@ export const ProfilePage: React.FC = () => {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Role Pill Switcher */}
-          <div className="flex items-center p-1 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold">
-            <button
-              onClick={() => updateRole("client")}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                currentRole === "client"
-                  ? "bg-white text-[var(--zx-primary)] shadow-xs"
-                  : "text-[var(--zx-muted)] hover:text-[var(--zx-ink)]"
-              }`}
-            >
-              Client
-            </button>
-            <button
-              onClick={() => updateRole("freelancer")}
-              className={`px-3 py-1 rounded-lg transition-all ${
-                currentRole === "freelancer"
-                  ? "bg-white text-[var(--zx-primary)] shadow-xs"
-                  : "text-[var(--zx-muted)] hover:text-[var(--zx-ink)]"
-              }`}
-            >
-              Freelancer
-            </button>
+          {/* Active Role Indicator */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-100 border border-slate-200 text-xs">
+            <span className="font-mono text-[var(--zx-muted)]">Active Role:</span>
+            <span className="font-bold capitalize text-[var(--zx-primary-deep)]">
+              {currentRole}
+            </span>
           </div>
 
           <button
-            onClick={() => setIsEditing(true)}
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white transition-all shadow-xs hover:opacity-95"
+            onClick={() => {
+              setEditRole(currentRole);
+              setIsEditing(true);
+            }}
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white transition-all shadow-xs hover:opacity-95 cursor-pointer"
             style={{ background: "var(--zx-primary)" }}
           >
             <Edit3 className="w-3.5 h-3.5" />
-            <span>Edit Profile</span>
+            <span>Edit Profile & Role</span>
           </button>
         </div>
       </div>
+
+      {profileFeedback && (
+        <div
+          className="flex items-center justify-between p-3.5 rounded-2xl text-xs font-semibold shadow-sm animate-in fade-in duration-150"
+          style={{
+            background: profileFeedback.type === "error" ? "rgba(163, 4, 2, 0.08)" : "rgba(22, 101, 52, 0.08)",
+            border: `1px solid ${profileFeedback.type === "error" ? "var(--zx-primary)" : "rgb(22, 101, 52)"}`,
+            color: profileFeedback.type === "error" ? "var(--zx-primary-deep)" : "rgb(20, 83, 45)",
+          }}
+        >
+          <span>{profileFeedback.msg}</span>
+          <button
+            type="button"
+            onClick={() => setProfileFeedback(null)}
+            className="text-xs font-bold underline hover:opacity-80 ml-3"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       {/* ─── DYNAMIC BENTO GRID (Designed compact to prevent scroll) ─── */}
       <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
@@ -280,8 +318,17 @@ export const ProfilePage: React.FC = () => {
                   <Award className="w-3 h-3" />
                   {currentRole === "client" ? "Verified Hirer" : "Verified Creator"}
                 </span>
-                <p className="text-[11px] font-mono text-[var(--zx-muted)] mt-1">
-                  Tier 2 Builder
+                <p className="text-[11px] font-mono text-[var(--zx-muted)] mt-1 flex items-center justify-end gap-1.5">
+                  {nftAssets.hasPass ? (
+                    <>
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-[var(--zx-ink)] font-bold">
+                        Tier {nftAssets.passTier} {nftAssets.passTier === 1 ? "Pro" : nftAssets.passTier === 2 ? "Enterprise" : "Architect"} #{nftAssets.passTokenId || "1"}
+                      </span>
+                    </>
+                  ) : (
+                    <span>Standard Member</span>
+                  )}
                 </p>
               </div>
             </div>
@@ -432,14 +479,14 @@ export const ProfilePage: React.FC = () => {
             <div className="mt-3 grid grid-cols-2 gap-3">
               <div className="p-3 rounded-2xl bg-white/5 border border-white/10">
                 <div className="text-[10px] text-slate-400 uppercase font-mono">
-                  Reputation
+                  Reputation SBT
                 </div>
                 <div className="text-2xl font-black mt-0.5 flex items-baseline gap-1">
-                  <span>99.4</span>
-                  <span className="text-xs font-semibold text-slate-400">/100</span>
+                  <span>{nftAssets.reputationCount > 0 ? nftAssets.reputationCount : (nftAssets.hasPass ? 1 : 0)}</span>
+                  <span className="text-xs font-semibold text-slate-400">Tokens</span>
                 </div>
                 <div className="text-[10px] text-emerald-400 font-semibold mt-1 flex items-center gap-1">
-                  <TrendingUp className="w-3 h-3" /> Top 1%
+                  <TrendingUp className="w-3 h-3" /> {nftAssets.hasPass ? "Verified On-Chain" : "Active Member"}
                 </div>
               </div>
 
@@ -594,8 +641,8 @@ export const ProfilePage: React.FC = () => {
                 style={{ borderColor: "var(--zx-border)" }}
               >
                 <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-amber-50 text-amber-700">
-                    <Bot className="w-4 h-4" />
+                  <div className="p-2 rounded-xl bg-amber-50 text-amber-700 flex items-center justify-center">
+                    <img src="/robot.png" alt="Sarvam AI" className="w-4 h-4 object-contain" />
                   </div>
                   <div>
                     <div className="text-xs font-bold text-[var(--zx-ink)]">
@@ -704,6 +751,51 @@ export const ProfilePage: React.FC = () => {
                   style={{ borderColor: "var(--zx-border)" }}
                   placeholder="Tell clients or collaborators about your background, skills, and escrow experience."
                 />
+              </div>
+
+              {/* Account Role Selector */}
+              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                <div>
+                  <label className="block text-xs font-bold text-[var(--zx-ink)]">
+                    Account Role Mode
+                  </label>
+                  <p className="text-[11px] text-[var(--zx-muted)]">
+                    Select your operating mode. Role modification is configured here to prevent accidental switching.
+                  </p>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setEditRole("client")}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      editRole === "client"
+                        ? "border-[var(--zx-primary)] bg-white shadow-xs"
+                        : "border-slate-200 bg-white/60 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-[var(--zx-ink)] flex items-center justify-between">
+                      <span>Client</span>
+                      {editRole === "client" && <span className="text-[10px] font-bold text-[var(--zx-primary)]">● Active</span>}
+                    </div>
+                    <div className="text-[10px] text-[var(--zx-muted)] mt-0.5">Post gigs, fund escrow, approve deliverables</div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditRole("freelancer")}
+                    className={`p-3 rounded-xl border text-left transition-all ${
+                      editRole === "freelancer"
+                        ? "border-[var(--zx-primary)] bg-white shadow-xs"
+                        : "border-slate-200 bg-white/60 hover:border-slate-300"
+                    }`}
+                  >
+                    <div className="text-xs font-bold text-[var(--zx-ink)] flex items-center justify-between">
+                      <span>Freelancer</span>
+                      {editRole === "freelancer" && <span className="text-[10px] font-bold text-[var(--zx-primary)]">● Active</span>}
+                    </div>
+                    <div className="text-[10px] text-[var(--zx-muted)] mt-0.5">Submit milestones, deliver work, withdraw funds</div>
+                  </button>
+                </div>
               </div>
 
               <div className="flex items-center justify-end gap-2 pt-3 border-t" style={{ borderColor: "var(--zx-border)" }}>

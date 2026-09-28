@@ -92,12 +92,28 @@ export const Footer: React.FC = () => {
             </ul>
           </div>
 
-          {/* Column 3: Trust & Legal */}
+          {/* Column 3: Support */}
           <div className="space-y-3">
             <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-[var(--zx-ink)]">
-              Legal & Trust
+              Support
             </h4>
             <ul className="space-y-2 text-xs">
+              <li>
+                <Link
+                  to="/contact"
+                  className="text-[var(--zx-muted)] hover:text-[var(--zx-primary)] transition-colors"
+                >
+                  Contact Us (RTDB)
+                </Link>
+              </li>
+              <li>
+                <Link
+                  to="/manual"
+                  className="text-[var(--zx-muted)] hover:text-[var(--zx-primary)] transition-colors"
+                >
+                  User Manual & Guide
+                </Link>
+              </li>
               <li>
                 <Link
                   to="/disclosure"
@@ -109,26 +125,10 @@ export const Footer: React.FC = () => {
               </li>
               <li>
                 <Link
-                  to="/disclosure#client-terms"
-                  className="text-[var(--zx-muted)] hover:text-[var(--zx-primary)] transition-colors"
-                >
-                  Client Escrow Terms
-                </Link>
-              </li>
-              <li>
-                <Link
                   to="/disclosure#auto-release"
                   className="text-[var(--zx-muted)] hover:text-[var(--zx-primary)] transition-colors"
                 >
                   72h Auto-Release Policy
-                </Link>
-              </li>
-              <li>
-                <Link
-                  to="/disclosure#dpdp-privacy"
-                  className="text-[var(--zx-muted)] hover:text-[var(--zx-primary)] transition-colors"
-                >
-                  DPDP Act Zero-PII
                 </Link>
               </li>
             </ul>
@@ -184,10 +184,13 @@ export const Footer: React.FC = () => {
 
         {/* ─── ANTIGRAVITY BIT FONT WATERMARK BANNER ─── */}
         <div className="zx-footer-watermark pt-6 pb-2 border-t border-b overflow-hidden relative select-none" style={{ borderColor: "var(--zx-border)" }}>
-          <div className="zx-footer-watermark-text text-center font-mono font-black tracking-[0.25em] sm:tracking-[0.45em] text-3xl sm:text-6xl lg:text-7xl text-slate-900/10 uppercase transition-all duration-500 hover:text-[var(--zx-primary)]/15">
-            Z E N T R I X
-          </div>
-          <div className="zx-footer-watermark-sub text-center text-[10px] font-mono tracking-widest uppercase text-[var(--zx-muted)] mt-1">
+          {/* <div className="zx-footer-watermark-text text-center font-black tracking-[0.25em] sm:tracking-[0.45em] text-3xl sm:text-6xl lg:text-7xl text-slate-900/10 transition-all duration-500 hover:text-[var(--zx-primary)]/15">
+            Zentrix.
+          </div> */}
+          <img style={{
+            marginBottom:"2%"
+          }} src="/footlogo.png" alt="Footer" />
+          <div className="zx-footer-watermark-sub text-center text-[15px] font-mono tracking-widest uppercase text-[var(--zx-muted)] mt-1">
             • ANTIGRAVITY AGENTIC ARCHITECTURE • NON-CUSTODIAL EVM • MST TESTNET 91562037 •
           </div>
         </div>

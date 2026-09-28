@@ -16,7 +16,7 @@ import {
 interface ConnectWalletModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onConnect: (type: "bridgekey" | "injected" | "demo-client" | "demo-freelancer") => Promise<string | null>;
+  onConnect: (type: "bridgekey" | "injected") => Promise<string | null>;
   isConnecting: boolean;
   hasExtension: boolean;
 }
@@ -33,7 +33,7 @@ export const ConnectWalletModal: React.FC<ConnectWalletModalProps> = ({
 
   if (!isOpen) return null;
 
-  const handleSelect = async (type: "bridgekey" | "injected" | "demo-client" | "demo-freelancer") => {
+  const handleSelect = async (type: "bridgekey" | "injected") => {
     setConnectingType(type);
     setErrorMessage(null);
     try {
@@ -208,74 +208,31 @@ export const ConnectWalletModal: React.FC<ConnectWalletModalProps> = ({
           </button>
         </div>
 
-        {/* ── 1-Click Instant Demo Wallets (For Fast Testing & Evaluation) ── */}
+        {/* ── MST Blockchain Testnet Parameter Details ── */}
         <div
-          className="rounded-2xl p-4 space-y-3"
+          className="rounded-2xl p-4 space-y-2.5"
           style={{
             background: "var(--zx-surface-alt)",
-            border: "1px dashed var(--zx-border)",
+            border: "1px solid var(--zx-border)",
           }}
         >
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5">
-              <Sparkles className="w-4 h-4" style={{ color: "var(--zx-warning)" }} />
-              <span className="text-xs font-bold uppercase tracking-wide" style={{ color: "var(--zx-ink)" }}>
-                Instant Testnet Demo Mode
+              <Shield className="w-4 h-4 text-emerald-600" />
+              <span className="text-xs font-bold uppercase tracking-wide text-slate-800">
+                Direct On-Chain Authentication
               </span>
             </div>
-            <span
-              className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-              style={{ background: "var(--zx-cream)", color: "var(--zx-muted)" }}
-            >
-              No Extension Needed
+            <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Zero Mock Signers
             </span>
           </div>
-          <p className="text-[11px]" style={{ color: "var(--zx-muted)" }}>
-            Evaluate the live on-chain escrow & Sarvam AI matchmaking immediately with pre-funded MST Testnet accounts:
+          <p className="text-[11px] text-slate-600 leading-relaxed font-medium">
+            Zentrix operates exclusively via non-custodial smart contracts on MST Testnet (Chain ID: 91562037). Every milestone deposit, release, and pass mint requires direct cryptographic confirmation from your wallet.
           </p>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => handleSelect("demo-client")}
-              disabled={isConnecting}
-              className="p-3 rounded-xl flex items-center gap-2.5 transition-all hover:scale-[1.02] text-left"
-              style={{
-                background: "var(--zx-cream)",
-                border: "1px solid var(--zx-border)",
-              }}
-            >
-              <Briefcase className="w-4 h-4 shrink-0" style={{ color: "var(--zx-primary-deep)" }} />
-              <div className="truncate">
-                <div className="text-xs font-bold" style={{ color: "var(--zx-ink)" }}>
-                  Demo Client
-                </div>
-                <div className="text-[10px] font-mono truncate" style={{ color: "var(--zx-muted)" }}>
-                  0x7FC1...1Cad · 0.5 tMSTC
-                </div>
-              </div>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => handleSelect("demo-freelancer")}
-              disabled={isConnecting}
-              className="p-3 rounded-xl flex items-center gap-2.5 transition-all hover:scale-[1.02] text-left"
-              style={{
-                background: "var(--zx-cream)",
-                border: "1px solid var(--zx-border)",
-              }}
-            >
-              <UserCheck className="w-4 h-4 shrink-0" style={{ color: "var(--zx-success)" }} />
-              <div className="truncate">
-                <div className="text-xs font-bold" style={{ color: "var(--zx-ink)" }}>
-                  Demo Freelancer
-                </div>
-                <div className="text-[10px] font-mono truncate" style={{ color: "var(--zx-muted)" }}>
-                  0x8cA0...Ec9e · 0.5 tMSTC
-                </div>
-              </div>
-            </button>
+          <div className="flex items-center justify-between pt-1 text-[11px] font-mono text-slate-500 border-t border-slate-200/60">
+            <span>RPC: testnetrpc.mstblockchain.com</span>
+            <span>Currency: tMSTC</span>
           </div>
         </div>
 

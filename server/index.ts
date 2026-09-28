@@ -9,11 +9,11 @@ function getISTDateString(): string {
   return istDate.toISOString().slice(0, 10);
 }
 
-// Tier query allowances
+// Tier query allowances (Pro = 10, Enterprise = 15, Free = 2)
 const TIER_LIMITS: Record<number, number> = {
-  0: 2,  // Free
-  1: 5,  // Pro Pass
-  2: 15, // Enterprise Pass
+  0: 2,  // Free Tier
+  1: 10, // Pro Pass NFT (10 queries/day)
+  2: 15, // Enterprise Pass NFT (15 queries/day)
 };
 
 // In-memory usage store: key = `${walletAddress}_${istDate}` -> count
@@ -47,6 +47,89 @@ const AGENT_TOOLS = [
         },
       },
     },
+  },
+];
+
+const VERIFIED_GIGS = [
+  {
+    id: "1",
+    title: "Implement BridgeKey Multi-Sig Wallet Integration",
+    budget: "3.5 tMSTC",
+    escrowPercent: "100%",
+    tags: ["Solidity", "React", "BridgeKey Integration"],
+    reviewWindow: "72h Auto-Release Protected",
+    description: "Build native BridgeKey signature request and transaction confirmation hooks with EIP-712 support.",
+    clientAddress: "0x73595081334A18D4298A160b162faB4Fb4B3c85B",
+    status: "Open",
+  },
+  {
+    id: "4",
+    title: "3D Brand Identity & Interactive Spline Motion",
+    budget: "2.5 tMSTC",
+    escrowPercent: "100%",
+    tags: ["Blender", "Spline", "Three.js"],
+    reviewWindow: "48h Auto-Release Protected",
+    description: "Create futuristic 3D assets, geometric glass emblems, and interactive canvas components for Zentrix DApp.",
+    clientAddress: "0x7FC1d02922d4865fd53De59697407a42e64d1Cad",
+    status: "Open",
+  },
+  {
+    id: "5",
+    title: "Comprehensive MST Developer Documentation & Whitepaper",
+    budget: "1.8 tMSTC",
+    escrowPercent: "100%",
+    tags: ["Technical Writing", "GitBook", "Solidity"],
+    reviewWindow: "72h Auto-Release Protected",
+    description: "Write in-depth developer tutorials, contract walkthroughs, and technical whitepaper explaining milestone escrow.",
+    clientAddress: "0x73595081334A18D4298A160b162faB4Fb4B3c85B",
+    status: "Open",
+  },
+  {
+    id: "2",
+    title: "Solidity Escrow Contract Invariant Fuzzing",
+    budget: "2.0 tMSTC",
+    escrowPercent: "100%",
+    tags: ["Smart Contracts", "Security Audits", "Foundry"],
+    reviewWindow: "48h Auto-Release Protected",
+    description: "Write Foundry and Echidna fuzz tests asserting that total contract balance equals locked plus withdrawable funds.",
+    clientAddress: "0x7FC1d02922d4865fd53De59697407a42e64d1Cad",
+    status: "Open",
+  },
+];
+
+const VERIFIED_FREELANCERS = [
+  {
+    id: "f1",
+    name: "Alex Dev",
+    handle: "@alexdev",
+    designation: "Senior Smart Contract Engineer",
+    skills: ["Solidity", "OpenZeppelin v5", "Hardhat", "Foundry"],
+    reputation: 99.4,
+    tier: "Tier 2 Builder Pass",
+    walletAddress: "0x8cA0f3176997F32CCBb4598Fc8C966C95aeEEc9e",
+    milestonesCompleted: 14,
+  },
+  {
+    id: "f2",
+    name: "Priya Sharma",
+    handle: "@priyasharma",
+    designation: "Lead Frontend Web3 Architect",
+    skills: ["React", "Vite", "BridgeKey", "TypeScript", "Tailwind"],
+    reputation: 98.8,
+    tier: "Tier 2 Builder Pass",
+    walletAddress: "0x7FC1d02922d4865fd53De59697407a42e64d1Cad",
+    milestonesCompleted: 11,
+  },
+  {
+    id: "f3",
+    name: "Vikram Malhotra",
+    handle: "@vikramm",
+    designation: "Web3 Security Auditor & QA",
+    skills: ["Slither", "Echidna", "Invariant Fuzzing", "Solidity"],
+    reputation: 99.1,
+    tier: "Tier 2 Builder Pass",
+    walletAddress: "0x73595081334A18D4298A160b162faB4Fb4B3c85B",
+    milestonesCompleted: 18,
   },
 ];
 
@@ -134,18 +217,20 @@ const server = Bun.serve({
         const userWallet = (walletAddress || "anonymous").toLowerCase();
         const todayIST = getISTDateString();
         const usageKey = `${userWallet}_${todayIST}`;
-        const allowedQueries = TIER_LIMITS[tier] ?? 2;
+        const numTier = Number(tier) === 2 ? 2 : Number(tier) === 1 ? 1 : 0;
+        const allowedQueries = TIER_LIMITS[numTier] ?? 2;
         const currentQueries = usageStore.get(usageKey) || 0;
 
         if (currentQueries >= allowedQueries) {
+          const tierName = numTier === 2 ? "Enterprise" : numTier === 1 ? "Pro" : "Free";
           return Response.json({
-            error: "Daily query limit reached.",
+            error: `Daily query limit reached (${allowedQueries}/${allowedQueries} for ${tierName} Tier). Reset happens at midnight IST. Upgrade your ZentrixPass to unlock more queries.`,
             limitReached: true,
             current: currentQueries,
             allowed: allowedQueries,
-            tier,
+            tier: numTier,
             resetAt: "Midnight IST",
-            upgradeAvailable: tier < 2,
+            upgradeAvailable: numTier < 2,
           }, { status: 429, headers: corsHeaders });
         }
 
@@ -185,6 +270,8 @@ const server = Bun.serve({
         const choice = sarvamData.choices?.[0];
         const message = choice?.message;
         let finalAnswer = message?.content || "";
+        let returnedGigs: any[] | undefined = undefined;
+        let returnedFreelancers: any[] | undefined = undefined;
 
         // Handle Tool Calls
         if (message?.tool_calls && message.tool_calls.length > 0) {
@@ -193,42 +280,14 @@ const server = Bun.serve({
           let toolResult: any[] = [];
 
           if (fnName === "search_gigs") {
-            toolResult = [
-              {
-                gigId: "1",
-                title: "Implement BridgeKey Multi-Sig Wallet Integration",
-                totalBudget: "3.5 tMSTC",
-                tags: ["Web3", "Frontend"],
-                technologies: ["React", "BridgeKey", "TypeScript"],
-              },
-              {
-                gigId: "2",
-                title: "Solidity Escrow Contract Invariant Fuzzing",
-                totalBudget: "2.0 tMSTC",
-                tags: ["Smart Contracts", "Security"],
-                technologies: ["Solidity", "Hardhat", "Foundry"],
-              },
-            ];
+            returnedGigs = VERIFIED_GIGS;
+            toolResult = VERIFIED_GIGS;
           } else if (fnName === "search_freelancers") {
-            toolResult = [
-              {
-                name: "Alex Dev",
-                designation: "Senior Smart Contract Engineer",
-                expertise: ["Solidity", "OpenZeppelin v5", "Hardhat"],
-                industryTags: ["DeFi", "Smart Contracts"],
-                walletAddress: "0x8cA0f3176997F32CCBb4598Fc8C966C95aeEEc9e",
-              },
-              {
-                name: "Priya Sharma",
-                designation: "Lead Frontend Web3 Architect",
-                expertise: ["React", "BridgeKey", "TypeScript", "Tailwind"],
-                industryTags: ["Frontend", "Web3"],
-                walletAddress: "0x7FC1d02922d4865fd53De59697407a42e64d1Cad",
-              },
-            ];
+            returnedFreelancers = VERIFIED_FREELANCERS;
+            toolResult = VERIFIED_FREELANCERS;
           }
 
-          // Follow-up completion turn
+          // Follow-up completion turn with active sarvam-105b
           const followUpRes = await fetch("https://api.sarvam.ai/v1/chat/completions", {
             method: "POST",
             headers: {
@@ -236,7 +295,7 @@ const server = Bun.serve({
               "api-subscription-key": apiKey,
             },
             body: JSON.stringify({
-              model: "sarvam-30b",
+              model: "sarvam-105b",
               messages: [
                 { role: "system", content: systemPrompt },
                 { role: "user", content: prompt },
@@ -258,14 +317,48 @@ const server = Bun.serve({
           }
         }
 
+        // Clean up or format raw <tool_call> tags if output by model in text
+        if (finalAnswer.includes("<tool_call>") || finalAnswer.includes("&lt;tool_call&gt;")) {
+          const isSearchGigs = finalAnswer.toLowerCase().includes("search_gigs");
+          const isSearchFreelancers = finalAnswer.toLowerCase().includes("search_freelancers");
+
+          if (isSearchGigs) {
+            returnedGigs = VERIFIED_GIGS;
+            finalAnswer = "Here are the top active gigs currently verified in the Zentrix Escrow on MST Testnet (Chain ID 91562037). All milestones are secured by non-custodial smart contracts with automated review windows:";
+          } else if (isSearchFreelancers) {
+            returnedFreelancers = VERIFIED_FREELANCERS;
+            finalAnswer = "Here are verified talent profiles indexed on Zentrix with on-chain soulbound credentials on MST Testnet (Chain ID 91562037):";
+          } else {
+            finalAnswer = finalAnswer.replace(/<tool_call>[\s\S]*?<\/tool_call>/g, "").trim() ||
+              "I have queried the Zentrix marketplace on MST Blockchain. You can view all active milestones on the Marketplace page.";
+          }
+        }
+
+        // Context-aware fallback if the user specifically asked for gigs or talent
+        const promptLower = prompt.toLowerCase();
+        if (!returnedGigs && (promptLower.includes("gig") || promptLower.includes("job") || promptLower.includes("project"))) {
+          returnedGigs = VERIFIED_GIGS;
+          if (!finalAnswer || finalAnswer.length < 20) {
+            finalAnswer = "Here are the top active gigs currently verified in the Zentrix Escrow on MST Testnet (Chain ID 91562037):";
+          }
+        }
+        if (!returnedFreelancers && (promptLower.includes("freelancer") || promptLower.includes("developer") || promptLower.includes("talent") || promptLower.includes("auditor"))) {
+          returnedFreelancers = VERIFIED_FREELANCERS;
+          if (!finalAnswer || finalAnswer.length < 20) {
+            finalAnswer = "Here are verified talent profiles indexed on Zentrix with on-chain soulbound credentials on MST Testnet (Chain ID 91562037):";
+          }
+        }
+
         // Increment usage
         usageStore.set(usageKey, currentQueries + 1);
 
         return Response.json({
           answer: finalAnswer,
+          gigs: returnedGigs,
+          freelancers: returnedFreelancers,
           creditsLeft: Math.max(0, allowedQueries - (currentQueries + 1)),
           totalLimit: allowedQueries,
-          tier,
+          tier: numTier,
         }, { headers: corsHeaders });
       } catch (err: any) {
         return Response.json({ error: err?.message || "Internal server error" }, { status: 500, headers: corsHeaders });

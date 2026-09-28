@@ -20,6 +20,7 @@ import {
   Scale,
 } from "lucide-react";
 import { CONTRACT_ADDRESSES } from "../contracts";
+import ThreeD from "../components/ThreeD";
 
 interface FAQItem {
   id: string;
@@ -130,6 +131,7 @@ export const HomePage: React.FC = () => {
           boxShadow: "0 10px 30px -10px rgba(0, 0, 0, 0.04)",
         }}
       >
+        {/* <ThreeD/> */}
         {/* Subtle Ambient Radial Highlight */}
         <div
           className="zx-hero-glow zx-hero-glow-right absolute -top-24 -right-24 w-96 h-96 rounded-full pointer-events-none blur-3xl opacity-20"
@@ -240,6 +242,9 @@ export const HomePage: React.FC = () => {
           </div>
         </div>
       </section>
+            
+      
+              
 
       {/* ── 2. ARCHITECTURAL PILLARS (Editorial Triad) ── */}
       <section className="zx-pillars-section space-y-6">
